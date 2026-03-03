@@ -151,10 +151,19 @@ export const groupTicketsByVisitor = (tickets, hiddenVisitorKeys = []) => {
 
 const getCardActiveStart = (ticket) => ticket?.paidAt || ticket?.createdAt;
 
-const getValidityMonths = (ticket) => {
-  const validityLabel = FEE_PRICING[ticket?.feeCategory]?.validity || "12 bulan";
-  const monthMatch = String(validityLabel).match(/(\d+)/);
-  return monthMatch ? Number(monthMatch[1]) : 12;
+const getValidityDuration = (ticket) => {
+  const validityLabel = String(FEE_PRICING[ticket?.feeCategory]?.validity || "365 hari").toLowerCase();
+  const amountMatch = validityLabel.match(/(\d+)/);
+  const amount = amountMatch ? Number(amountMatch[1]) : 365;
+  const unit =
+    validityLabel.includes("bulan") || validityLabel.includes("month")
+      ? "months"
+      : "days";
+
+  return {
+    amount: amount > 0 ? amount : 365,
+    unit,
+  };
 };
 
 export const getTicketRemainingDays = (ticket) => {
@@ -163,7 +172,12 @@ export const getTicketRemainingDays = (ticket) => {
   if (Number.isNaN(activeStart.getTime())) return 0;
 
   const expiresAt = new Date(activeStart);
-  expiresAt.setMonth(expiresAt.getMonth() + getValidityMonths(ticket));
+  const { amount, unit } = getValidityDuration(ticket);
+  if (unit === "months") {
+    expiresAt.setMonth(expiresAt.getMonth() + amount);
+  } else {
+    expiresAt.setDate(expiresAt.getDate() + amount);
+  }
   const remainingMs = expiresAt.getTime() - Date.now();
   return Math.max(0, Math.ceil(remainingMs / (1000 * 60 * 60 * 24)));
 };

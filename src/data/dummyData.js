@@ -1,17 +1,17 @@
 // Dummy data for Raja Ampat Conservation Fee Ticketing Admin Dashboard
 export const SERVICE_RATE_VALIDITY_OPTIONS = [
-  '1 bulan',
-  '2 bulan',
-  '3 bulan',
-  '4 bulan',
-  '5 bulan',
-  '6 bulan',
-  '7 bulan',
-  '8 bulan',
-  '9 bulan',
-  '10 bulan',
-  '11 bulan',
-  '12 bulan',
+  '30 hari',
+  '60 hari',
+  '90 hari',
+  '120 hari',
+  '150 hari',
+  '180 hari',
+  '210 hari',
+  '240 hari',
+  '270 hari',
+  '300 hari',
+  '330 hari',
+  '365 hari',
 ];
 
 export const DEFAULT_SERVICE_RATE_VALIDITY = SERVICE_RATE_VALIDITY_OPTIONS[11];

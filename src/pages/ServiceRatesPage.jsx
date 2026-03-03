@@ -6,13 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Card, } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -34,11 +27,18 @@ import { Pencil, Trash2, Search, Plus } from 'lucide-react';
 import {
   DEFAULT_SERVICE_RATE_VALIDITY,
   FEE_PRICING,
-  SERVICE_RATE_VALIDITY_OPTIONS,
   formatRupiah,
 } from '@/data/dummyData';
 
+const parseValidityDays = (value, fallback = 365) => {
+  const parsed = Number(String(value || '').replace(/[^\d]/g, ''));
+  if (Number.isFinite(parsed) && parsed > 0) return parsed;
+  return fallback;
+};
+
 export default function ServiceRatesPage() {
+  const defaultValidityDays = parseValidityDays(DEFAULT_SERVICE_RATE_VALIDITY, 365);
+
   const initialItems = useMemo(
     () =>
       Object.entries(FEE_PRICING).map(([key, value]) => ({
@@ -50,19 +50,17 @@ export default function ServiceRatesPage() {
     []
   );
 
-  const validityOptions = SERVICE_RATE_VALIDITY_OPTIONS;
-
   const [items, setItems] = useState(initialItems);
   const [searchQuery, setSearchQuery] = useState('');
   const [editItem, setEditItem] = useState(null);
   const [deleteItem, setDeleteItem] = useState(null);
   const [editLabel, setEditLabel] = useState('');
   const [editPrice, setEditPrice] = useState('');
-  const [editValidity, setEditValidity] = useState(DEFAULT_SERVICE_RATE_VALIDITY);
+  const [editValidityDays, setEditValidityDays] = useState(String(defaultValidityDays));
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [newLabel, setNewLabel] = useState('');
   const [newPrice, setNewPrice] = useState('');
-  const [newValidity, setNewValidity] = useState(DEFAULT_SERVICE_RATE_VALIDITY);
+  const [newValidityDays, setNewValidityDays] = useState(String(defaultValidityDays));
 
   const filteredItems = items.filter((item) => {
     if (!searchQuery.trim()) return true;
@@ -74,12 +72,17 @@ export default function ServiceRatesPage() {
     setEditItem(item);
     setEditLabel(item.label);
     setEditPrice(item.price.toString());
-    setEditValidity(item.validity || DEFAULT_SERVICE_RATE_VALIDITY);
+    setEditValidityDays(String(parseValidityDays(item.validity || DEFAULT_SERVICE_RATE_VALIDITY, defaultValidityDays)));
   };
 
   const saveEdit = () => {
     if (!editItem) return;
     const nextPrice = Number(editPrice.replace(/[^\d]/g, ''));
+    const fallbackValidityDays = parseValidityDays(
+      editItem.validity || DEFAULT_SERVICE_RATE_VALIDITY,
+      defaultValidityDays
+    );
+    const nextValidityDays = parseValidityDays(editValidityDays, fallbackValidityDays);
     setItems((prev) =>
       prev.map((item) =>
         item.id === editItem.id
@@ -87,9 +90,7 @@ export default function ServiceRatesPage() {
               ...item,
               label: editLabel.trim() || item.label,
               price: Number.isFinite(nextPrice) && nextPrice > 0 ? nextPrice : item.price,
-              validity: validityOptions.includes(editValidity)
-                ? editValidity
-                : item.validity || DEFAULT_SERVICE_RATE_VALIDITY,
+              validity: `${nextValidityDays} hari`,
             }
           : item
       )
@@ -116,19 +117,18 @@ export default function ServiceRatesPage() {
     if (!trimmedLabel) return;
     const nextPrice = Number(newPrice.replace(/[^\d]/g, ''));
     if (!Number.isFinite(nextPrice) || nextPrice <= 0) return;
+    const nextValidityDays = parseValidityDays(newValidityDays, defaultValidityDays);
     const nextItem = {
       id: generateId(trimmedLabel),
       label: trimmedLabel,
       price: nextPrice,
-      validity: validityOptions.includes(newValidity)
-        ? newValidity
-        : DEFAULT_SERVICE_RATE_VALIDITY,
+      validity: `${nextValidityDays} hari`,
     };
     setItems((prev) => [...prev, nextItem]);
     setShowAddDialog(false);
     setNewLabel('');
     setNewPrice('');
-    setNewValidity(DEFAULT_SERVICE_RATE_VALIDITY);
+    setNewValidityDays(String(defaultValidityDays));
   };
   const confirmDelete = () => {
     if (!deleteItem) return;
@@ -246,15 +246,17 @@ export default function ServiceRatesPage() {
             )
             , React.createElement('div', { className: "space-y-2"}
               , React.createElement('label', { className: "text-sm font-medium" }, "Masa Berlaku")
-              , React.createElement(Select, { value: editValidity, onValueChange: setEditValidity }
-                , React.createElement(SelectTrigger, null
-                  , React.createElement(SelectValue, { placeholder: "Pilih masa berlaku" })
-                )
-                , React.createElement(SelectContent, null
-                  , validityOptions.map((option) => (
-                    React.createElement(SelectItem, { key: option, value: option }, option)
-                  ))
-                )
+              , React.createElement(Input, {
+                type: "number",
+                min: "1",
+                step: "1",
+                inputMode: "numeric",
+                value: editValidityDays,
+                onChange: (e) => setEditValidityDays(e.target.value),
+                placeholder: "Contoh: 365"
+              })
+              , React.createElement('p', { className: "text-xs text-muted-foreground" }, "Disimpan sebagai: "
+                  , parseValidityDays(editValidityDays, defaultValidityDays), " hari"
               )
             )
           )
@@ -295,15 +297,17 @@ export default function ServiceRatesPage() {
             )
             , React.createElement('div', { className: "space-y-2"}
               , React.createElement('label', { className: "text-sm font-medium" }, "Masa Berlaku")
-              , React.createElement(Select, { value: newValidity, onValueChange: setNewValidity }
-                , React.createElement(SelectTrigger, null
-                  , React.createElement(SelectValue, { placeholder: "Pilih masa berlaku" })
-                )
-                , React.createElement(SelectContent, null
-                  , validityOptions.map((option) => (
-                    React.createElement(SelectItem, { key: option, value: option }, option)
-                  ))
-                )
+              , React.createElement(Input, {
+                type: "number",
+                min: "1",
+                step: "1",
+                inputMode: "numeric",
+                value: newValidityDays,
+                onChange: (e) => setNewValidityDays(e.target.value),
+                placeholder: "Contoh: 365"
+              })
+              , React.createElement('p', { className: "text-xs text-muted-foreground" }, "Disimpan sebagai: "
+                  , parseValidityDays(newValidityDays, defaultValidityDays), " hari"
               )
             )
           )
