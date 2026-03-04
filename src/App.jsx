@@ -47,7 +47,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<OverviewPage />} />
           <Route path="/tickets" element={<TicketListPage />} />
-          <Route path="/visitors" element={<VisitorPage />} />
+          {/* <Route path="/visitors" element={<VisitorPage />} /> */}
           <Route path="/visitors/:visitorKey" element={<VisitorDetailPage />} />
           <Route path="/ticket-designer" element={<TicketDesignerPage />} />
           <Route path="/tickets/:ticketId" element={<TicketDetailPage />} />

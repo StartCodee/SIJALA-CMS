@@ -104,18 +104,24 @@ export const ROLE_LABELS = {
 };
 
 export const dummyPermissionMatrix = [
-  { perm: 'Akses Tiketing', admin_utama: true, admin_tiket: true, petugas_tiket: true },
-  { perm: 'Akses Sijala', admin_utama: true, admin_tiket: false, petugas_tiket: false },
-  { perm: 'Akses Panel Administrasi', admin_utama: true, admin_tiket: false, petugas_tiket: false },
-  { perm: 'Grant akses registrasi tipe pengguna', admin_utama: true, admin_tiket: false, petugas_tiket: false },
-  { perm: 'Approval Tiket', admin_utama: true, admin_tiket: true, petugas_tiket: false },
-  { perm: 'Filling Tiket', admin_utama: true, admin_tiket: true, petugas_tiket: true },
-  { perm: 'Editing Tiket', admin_utama: true, admin_tiket: true, petugas_tiket: true },
-  { perm: 'Submitting Tiket', admin_utama: true, admin_tiket: true, petugas_tiket: true },
-  { perm: 'Printing Result', admin_utama: true, admin_tiket: true, petugas_tiket: false },
-  { perm: 'Akses Screenshot', admin_utama: true, admin_tiket: true, petugas_tiket: false },
-  { perm: 'Export Data', admin_utama: true, admin_tiket: true, petugas_tiket: false },
-  { perm: 'Lihat Time Series Keuangan', admin_utama: true, admin_tiket: false, petugas_tiket: false },
+  { perm: 'Ringkasan', admin_utama: true, admin_tiket: true, petugas_tiket: true },
+  { perm: 'Tiket', admin_utama: true, admin_tiket: true, petugas_tiket: true },
+  { perm: 'Edit tiket', admin_utama: true, admin_tiket: true, petugas_tiket: true },
+  { perm: 'Invoice', admin_utama: true, admin_tiket: true, petugas_tiket: false },
+  { perm: 'Edit invoice', admin_utama: true, admin_tiket: true, petugas_tiket: false },
+  { perm: 'Pembayaran', admin_utama: true, admin_tiket: true, petugas_tiket: false },
+  { perm: 'Pengembalian Dana', admin_utama: true, admin_tiket: true, petugas_tiket: false },
+  { perm: 'Antrian Persetujuan', admin_utama: true, admin_tiket: true, petugas_tiket: false },
+  { perm: 'Approval Invoice', admin_utama: true, admin_tiket: true, petugas_tiket: false },
+  { perm: 'Buat tiket', admin_utama: true, admin_tiket: true, petugas_tiket: true },
+  { perm: 'Edit tiket', admin_utama: true, admin_tiket: true, petugas_tiket: true },
+  { perm: 'Kirim tiket', admin_utama: true, admin_tiket: true, petugas_tiket: true },
+  { perm: 'Laporan Keuangan', admin_utama: true, admin_tiket: false, petugas_tiket: false },
+  { perm: 'Manajemen Pengguna', admin_utama: true, admin_tiket: false, petugas_tiket: false },
+  { perm: 'Akses screenshoot', admin_utama: true, admin_tiket: true, petugas_tiket: false },
+  { perm: 'Export Data (XLS, PDF, Print)', admin_utama: true, admin_tiket: true, petugas_tiket: false },
+  { perm: 'Tampilan Tiket', admin_utama: true, admin_tiket: true, petugas_tiket: true },
+  { perm: 'Log Aktivitas', admin_utama: true, admin_tiket: true, petugas_tiket: false },
 ];
 
 // Dummy Tickets
