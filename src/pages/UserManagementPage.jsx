@@ -105,7 +105,7 @@ export default function UserManagementPage() {
   return (
     React.createElement(AdminLayout, {__self: this, __source: {fileName: _jsxFileName, lineNumber: 84}}
       , React.createElement(AdminHeader, {
-        title: "Manajemen Pengguna" ,
+        title: "Kelola Tim" ,
         subtitle: "Kelola akun pengguna dan izin peran"     ,
         showSearch: false,
         showDateFilter: false, __self: this, __source: {fileName: _jsxFileName, lineNumber: 85}}
@@ -144,30 +144,31 @@ export default function UserManagementPage() {
         )
 
         /* Search & Actions */
-        , React.createElement('div', { className: "flex items-center gap-4 mb-4"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 125}}
-          , React.createElement('div', { className: "relative flex-1 max-w-md"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 126}}
-            , React.createElement(Search, { className: "absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 127}} )
+        , React.createElement('div', { className: "mb-4 flex flex-col gap-3 lg:flex-row lg:items-center"   , __self: this, __source: {fileName: _jsxFileName, lineNumber: 125}}
+          , React.createElement('div', { className: "relative w-full lg:w-[28rem]"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 127}}
+            , React.createElement(Search, { className: "absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"      , __self: this, __source: {fileName: _jsxFileName, lineNumber: 128}} )
             , React.createElement(Input, {
               placeholder: "Cari nama atau email..."   ,
               value: searchQuery,
               onChange: (e) => setSearchQuery(e.target.value),
-              className: "pl-9 bg-card" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 128}}
+              className: "pl-9 bg-card" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 129}}
             )
           )
-          , React.createElement(Select, { value: roleFilter, onValueChange: setRoleFilter, __self: this, __source: {fileName: _jsxFileName, lineNumber: 135}}
-            , React.createElement(SelectTrigger, { className: "w-[180px] bg-card" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 136}}
-              , React.createElement(SelectValue, { placeholder: "Peran", __self: this, __source: {fileName: _jsxFileName, lineNumber: 137}} )
+          , React.createElement('div', { className: "flex flex-wrap items-center gap-3 lg:ml-auto" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 126}}
+            , React.createElement(Select, { value: roleFilter, onValueChange: setRoleFilter, __self: this, __source: {fileName: _jsxFileName, lineNumber: 135}}
+              , React.createElement(SelectTrigger, { className: "w-[180px] bg-card" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 136}}
+                , React.createElement(SelectValue, { placeholder: "Peran", __self: this, __source: {fileName: _jsxFileName, lineNumber: 137}} )
+              )
+              , React.createElement(SelectContent, { className: "bg-popover border-border" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 139}}
+                , React.createElement(SelectItem, { value: "all", __self: this, __source: {fileName: _jsxFileName, lineNumber: 140}}, "Semua Peran" )
+                , React.createElement(SelectItem, { value: "admin_utama", __self: this, __source: {fileName: _jsxFileName, lineNumber: 141}}, "Admin Utama")
+                , React.createElement(SelectItem, { value: "admin_tiket", __self: this, __source: {fileName: _jsxFileName, lineNumber: 142}}, "Admin Tiket" )
+                , React.createElement(SelectItem, { value: "petugas_tiket", __self: this, __source: {fileName: _jsxFileName, lineNumber: 143}}, "Petugas Tiket" )
+              )
             )
-            , React.createElement(SelectContent, { className: "bg-popover border-border" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 139}}
-              , React.createElement(SelectItem, { value: "all", __self: this, __source: {fileName: _jsxFileName, lineNumber: 140}}, "Semua Peran" )
-              , React.createElement(SelectItem, { value: "admin_utama", __self: this, __source: {fileName: _jsxFileName, lineNumber: 141}}, "Admin Utama")
-              , React.createElement(SelectItem, { value: "admin_tiket", __self: this, __source: {fileName: _jsxFileName, lineNumber: 142}}, "Admin Tiket" )
-              , React.createElement(SelectItem, { value: "petugas_tiket", __self: this, __source: {fileName: _jsxFileName, lineNumber: 143}}, "Petugas Tiket" )
+            , React.createElement(Button, { className: "btn-ocean gap-2" , onClick: () => setShowAddDialog(true), __self: this, __source: {fileName: _jsxFileName, lineNumber: 146}}
+              , React.createElement(Plus, { className: "w-4 h-4" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 147}} ), "Tambah Pengguna"
             )
-          )
-          , React.createElement(Button, { className: "btn-ocean gap-2" , onClick: () => setShowAddDialog(true), __self: this, __source: {fileName: _jsxFileName, lineNumber: 146}}
-            , React.createElement(Plus, { className: "w-4 h-4" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 147}} ), "Tambah Pengguna"
-
           )
         )
 
