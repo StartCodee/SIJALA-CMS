@@ -58,6 +58,8 @@ export default function UserManagementPage() {
   const [permissions, setPermissions] = useState(
     () => dummyPermissionMatrix.map((row) => ({ ...row }))
   );
+  const [adminTicketFilterDays, setAdminTicketFilterDays] = useState('5');
+  const [petugasTicketFilterDays, setPetugasTicketFilterDays] = useState('2');
 
   // Filter users
   const filteredUsers = dummyAdminUsers.filter((user) => {
@@ -91,6 +93,11 @@ export default function UserManagementPage() {
           : item,
       ),
     );
+  };
+
+  const handleFilterDayChange = (setter) => (event) => {
+    const nextValue = event.target.value.replace(/\D/g, '');
+    setter(nextValue);
   };
 
   const getInitials = (name) => {
@@ -268,17 +275,21 @@ export default function UserManagementPage() {
             , React.createElement('div', { className: "overflow-x-auto", __self: this, __source: {fileName: _jsxFileName, lineNumber: 245}}
               , React.createElement('table', { className: "w-full text-sm table-fixed" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 246}}
                 , React.createElement('colgroup', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 247}}
-                  , React.createElement('col', { className: "w-[40%]"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 248}} )
-                  , React.createElement('col', { className: "w-[20%]"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 249}} )
-                  , React.createElement('col', { className: "w-[20%]"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 250}} )
-                  , React.createElement('col', { className: "w-[20%]"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 251}} )
+                  , React.createElement('col', { className: "w-[28%]"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 248}} )
+                  , React.createElement('col', { className: "w-[14%]"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 249}} )
+                  , React.createElement('col', { className: "w-[14%]"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 250}} )
+                  , React.createElement('col', { className: "w-[15%]"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 251}} )
+                  , React.createElement('col', { className: "w-[14%]"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 252}} )
+                  , React.createElement('col', { className: "w-[15%]"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 253}} )
                 )
                 , React.createElement('thead', {__self: this, __source: {fileName: _jsxFileName, lineNumber: 253}}
                   , React.createElement('tr', { className: "border-b border-border" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 248}}
                     , React.createElement('th', { className: "text-left py-2 font-medium"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 249}}, "Izin")
                     , React.createElement('th', { className: "text-center py-2 font-medium"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 250}}, "Admin Utama")
                     , React.createElement('th', { className: "text-center py-2 font-medium"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 251}}, "Admin Tiket" )
-                    , React.createElement('th', { className: "text-center py-2 font-medium"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 252}}, "Petugas Tiket" )
+                    , React.createElement('th', { className: "text-center py-2 font-medium"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 252}}, "Filter Waktu" )
+                    , React.createElement('th', { className: "text-center py-2 font-medium"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 253}}, "Petugas Tiket" )
+                    , React.createElement('th', { className: "text-center py-2 font-medium"  , __self: this, __source: {fileName: _jsxFileName, lineNumber: 254}}, "Filter Waktu" )
                   )
                 )
                 , React.createElement('tbody', { className: "divide-y divide-border" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 255}}
@@ -303,6 +314,19 @@ export default function UserManagementPage() {
                           )
                         )
                       )
+                      , React.createElement('td', { className: "text-center py-2", __self: this, __source: {fileName: _jsxFileName, lineNumber: 283}}
+                        , React.createElement('div', { className: "flex items-center justify-center gap-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 284}}
+                          , React.createElement(Input, {
+                            type: "text",
+                            inputMode: "numeric",
+                            value: adminTicketFilterDays,
+                            onChange: handleFilterDayChange(setAdminTicketFilterDays),
+                            className: "h-8 w-[56px] bg-card text-center",
+                            'aria-label': `Filter waktu untuk Admin Tiket pada izin ${row.perm}`, __self: this, __source: {fileName: _jsxFileName, lineNumber: 285}}
+                          )
+                          , React.createElement('span', { className: "text-xs text-muted-foreground" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 292}}, "hari")
+                        )
+                      )
                       , React.createElement('td', { className: "text-center py-2" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 284}}
                         , React.createElement('div', { className: "flex justify-center" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 285}}
                           , React.createElement(Checkbox, {
@@ -310,6 +334,19 @@ export default function UserManagementPage() {
                             onCheckedChange: (checked) => handlePermissionToggle(i, 'petugas_tiket', checked),
                             'aria-label': `Izin ${row.perm} untuk Petugas Tiket`, __self: this, __source: {fileName: _jsxFileName, lineNumber: 286}}
                           )
+                        )
+                      )
+                      , React.createElement('td', { className: "text-center py-2", __self: this, __source: {fileName: _jsxFileName, lineNumber: 292}}
+                        , React.createElement('div', { className: "flex items-center justify-center gap-1", __self: this, __source: {fileName: _jsxFileName, lineNumber: 293}}
+                          , React.createElement(Input, {
+                            type: "text",
+                            inputMode: "numeric",
+                            value: petugasTicketFilterDays,
+                            onChange: handleFilterDayChange(setPetugasTicketFilterDays),
+                            className: "h-8 w-[56px] bg-card text-center",
+                            'aria-label': `Filter waktu untuk Petugas Tiket pada izin ${row.perm}`, __self: this, __source: {fileName: _jsxFileName, lineNumber: 294}}
+                          )
+                          , React.createElement('span', { className: "text-xs text-muted-foreground" , __self: this, __source: {fileName: _jsxFileName, lineNumber: 301}}, "hari")
                         )
                       )
                     )
