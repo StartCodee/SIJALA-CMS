@@ -176,7 +176,7 @@ export function AdminHeader({
             <div className="relative w-full md:w-[280px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Cari ID Tiket, nama, email..."
+                placeholder="Cari konten..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-9 h-9 bg-background border-border"

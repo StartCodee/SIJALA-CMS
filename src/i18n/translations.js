@@ -1,38 +1,13 @@
-import idCommon from "@/locales/id/common.json";
-import enCommon from "@/locales/en/common.json";
-import idShared from "@/locales/id/shared.json";
-import enShared from "@/locales/en/shared.json";
 import { DEFAULT_LANGUAGE } from "./localeConfig";
 
-const localeModules = {
-  id: import.meta.glob("../locales/id/pages/*.json", { eager: true }),
-  en: import.meta.glob("../locales/en/pages/*.json", { eager: true }),
-};
-
-const toPageKey = (filePath) =>
-  filePath.split("/").pop()?.replace(".json", "") || "";
-
-const normalizePageDictionary = (modules) =>
-  Object.fromEntries(
-    Object.entries(modules).map(([filePath, moduleValue]) => [
-      toPageKey(filePath),
-      moduleValue.default || moduleValue,
-    ]),
-  );
-
-const pageDictionaries = {
-  id: normalizePageDictionary(localeModules.id),
-  en: normalizePageDictionary(localeModules.en),
-};
-
 const commonDictionaries = {
-  id: idCommon,
-  en: enCommon,
+  id: {},
+  en: {},
 };
 
 const sharedDictionaries = {
-  id: idShared,
-  en: enShared,
+  id: {},
+  en: {},
 };
 
 export function getCommonDictionary(language) {
@@ -40,8 +15,7 @@ export function getCommonDictionary(language) {
 }
 
 export function getPageDictionary(language, pageKey) {
-  const languagePages = pageDictionaries[language] || pageDictionaries[DEFAULT_LANGUAGE];
-  return languagePages[pageKey] || {};
+  return {};
 }
 
 export function getMergedDictionary(language, pageKey) {

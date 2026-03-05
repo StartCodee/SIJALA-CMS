@@ -3,17 +3,6 @@ import { NavLink, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import {
   LayoutDashboard,
-  Ticket,
-  ClipboardCheck,
-  CreditCard,
-  Tag,
-  DoorOpen,
-  BarChart3,
-  RotateCcw,
-  FileInput,
-  User,
-  Users,
-  History,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -25,22 +14,6 @@ import { useLanguage } from '@/i18n/LanguageContext';
 
 const mainNavItems = [
   { to: '/', icon: LayoutDashboard, label: 'Ringkasan' },
-  { to: '/tickets', icon: Ticket, label: 'Tiket' },
-  // { to: '/visitors', icon: User, label: 'Visitor' },
-  { to: '/invoices', icon: CreditCard, label: 'Invoice' },
-  { to: '/payments', icon: CreditCard, label: 'Pembayaran' },
-  // { to: '/refund-request', icon: FileInput, label: 'Pengajuan Refund' },
-  { to: '/refunds', icon: RotateCcw, label: 'Pengembalian Dana' },
-  { to: '/approval', icon: ClipboardCheck, label: 'Antrian Persetujuan' },
-  { to: '/reports', icon: BarChart3, label: 'Laporan Keuangan' },
-  { to: '/gate', icon: DoorOpen, label: 'Tiket Langsung' },
-];
-
-const settingsItems = [
-  { to: '/tarif', icon: Tag, label: 'Tarif Layanan' },
-  { to: '/ticket-designer', icon: Tag, label: 'Editing Kartu' },
-  { to: '/users', icon: Users, label: 'Kelola tim' },
-  { to: '/logs', icon: History, label: 'Log Aktivitas' },
 ];
 
 export function AdminSidebar({ className, mobileOpen = false, onMobileClose }) {
@@ -115,7 +88,7 @@ export function AdminSidebar({ className, mobileOpen = false, onMobileClose }) {
             {!isCollapsed && (
               <div className="flex-1 min-w-0">
                 <h1 className="text-base font-bold text-white truncate leading-tight">KKP Raja Ampat</h1>
-                <p className="text-[11px] text-sidebar-foreground/70 truncate">Marine Park Fee</p>
+                <p className="text-[11px] text-sidebar-foreground/70 truncate">Content Management System</p>
               </div>
             )}
           </div>
@@ -139,31 +112,6 @@ export function AdminSidebar({ className, mobileOpen = false, onMobileClose }) {
               </p>
             )}
             {mainNavItems.map((item) => (
-              <NavLink
-                key={item.to}
-                to={item.to}
-                className={({ isActive }) => cn(
-                  'nav-item',
-                  isActive && 'active',
-                  isCollapsed && 'justify-center px-2'
-                )}
-                title={isCollapsed ? item.label : undefined}
-                onClick={handleMobileClose}
-              >
-                <item.icon className="w-5 h-5 flex-shrink-0" />
-                {!isCollapsed && <span className="truncate">{item.label}</span>}
-              </NavLink>
-            ))}
-          </div>
-
-          {/* Admin Section */}
-          <div className="mt-6 space-y-1">
-            {!isCollapsed && (
-              <p className="text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-wider px-4 mb-2">
-                Pengaturan
-              </p>
-            )}
-            {settingsItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}

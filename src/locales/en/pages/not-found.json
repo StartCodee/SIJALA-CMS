@@ -1,6 +1,0 @@
-{
-  "Error 404: Pengguna mencoba mengakses rute yang tidak ada:": "Error 404: User attempted to access a route that does not exist:",
-  "Kembali ke Beranda": "Return to Home",
-  "src\\pages\\NotFound.tsx": "src\\pages\\NotFound.tsx",
-  "Ups! Halaman tidak ditemukan": "Oops! Page not found"
-}

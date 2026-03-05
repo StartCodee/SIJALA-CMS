@@ -32,7 +32,7 @@ export function AdminLayout({ children, className }) {
               rel="noreferrer"
               className="inline-flex w-full items-center justify-center gap-1 text-[#0d1930] hover:underline"
             >
-              © 2026 BLUD UPTD Kep. Raja Ampat Tiket Ver.1.0 | Loka Spasial Nusantara
+              © 2026 BLUD UPTD Kep. Raja Ampat CMS Ver.1.0 | Loka Spasial Nusantara
             </a>
           </footer>
         </main>
