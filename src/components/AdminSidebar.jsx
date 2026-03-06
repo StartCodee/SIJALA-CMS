@@ -15,7 +15,8 @@ import { useLanguage } from '@/i18n/LanguageContext';
 
 const mainNavItems = [
   { to: '/', icon: LayoutDashboard, label: 'Ringkasan' },
-  { to: '/Berita', icon: Newspaper, label: 'Berita' } // Ikon sudah diganti
+  { to: '/rams', icon: LayoutDashboard, label: 'RAMS' },
+  { to: '/Berita', icon: Newspaper, label: 'Berita' }
 ];
 
 export function AdminSidebar({ className, mobileOpen = false, onMobileClose }) {
