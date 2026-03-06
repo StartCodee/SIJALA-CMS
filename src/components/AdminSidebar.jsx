@@ -7,7 +7,10 @@ import {
   ChevronRight,
   LogOut,
   X,
-  Newspaper, // Import ikon koran untuk berita
+  Newspaper, 
+  BookOpen,     
+  CalendarDays,  
+  ShieldCheck
 } from 'lucide-react';
 import logoRajaAmpat from '@/assets/image/KKP-RajaAmpat.png';
 import motifSidebar from '@/assets/motif-sidebar.svg';
@@ -16,7 +19,9 @@ import { useLanguage } from '@/i18n/LanguageContext';
 const mainNavItems = [
   { to: '/', icon: LayoutDashboard, label: 'Ringkasan' },
   { to: '/rams', icon: LayoutDashboard, label: 'RAMS' },
-  { to: '/Berita', icon: Newspaper, label: 'Berita' }
+  { to: '/Berita', icon: Newspaper, label: 'Berita' },
+  { to: '/Publikasi', icon: BookOpen, label: 'Publikasi' }, 
+  { to: '/KalenderKegiatan', icon: CalendarDays, label: 'Kalender Kegiatan' } 
 ];
 
 export function AdminSidebar({ className, mobileOpen = false, onMobileClose }) {
