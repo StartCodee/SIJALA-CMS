@@ -7,6 +7,7 @@ import {
   ChevronRight,
   LogOut,
   X,
+  Newspaper, // Import ikon koran untuk berita
 } from 'lucide-react';
 import logoRajaAmpat from '@/assets/image/KKP-RajaAmpat.png';
 import motifSidebar from '@/assets/motif-sidebar.svg';
@@ -14,6 +15,7 @@ import { useLanguage } from '@/i18n/LanguageContext';
 
 const mainNavItems = [
   { to: '/', icon: LayoutDashboard, label: 'Ringkasan' },
+  { to: '/Berita', icon: Newspaper, label: 'Berita' } // Ikon sudah diganti
 ];
 
 export function AdminSidebar({ className, mobileOpen = false, onMobileClose }) {
@@ -57,15 +59,15 @@ export function AdminSidebar({ className, mobileOpen = false, onMobileClose }) {
         )}
         style={{ background: 'var(--gradient-sidebar)' }}
       >
-        {/* Tribal motif kanan bawah */}
+        {/* Tribal motif kiri bawah */}
         <img
           src={motifSidebar}
           alt=""
           aria-hidden="true"
           className={cn(
-            'pointer-events-none select-none absolute bottom-0 left-0',
-            'opacity-100 w-[10px] md:w-[140px]',
-            isCollapsed && 'md:w-[140px]'
+            'pointer-events-none select-none absolute bottom-0 left-0 transition-all duration-300',
+            'opacity-100 w-[140px]',
+            isCollapsed && 'md:w-[70px] opacity-40'
           )}
         />
 
@@ -74,8 +76,8 @@ export function AdminSidebar({ className, mobileOpen = false, onMobileClose }) {
           <div className={cn('flex items-center gap-3 flex-1 min-w-0', isCollapsed && 'md:justify-center md:gap-0')}>
             <div
               className={cn(
-                'rounded-xl bg-white/95 ring-1 ring-white/25 p-1 shadow-sm',
-                'h-12 w-12 md:h-12 md:w-12',
+                'rounded-xl bg-white/95 ring-1 ring-white/25 p-1 shadow-sm transition-all',
+                'h-12 w-12',
                 isCollapsed && 'md:h-10 md:w-10'
               )}
             >
@@ -86,7 +88,7 @@ export function AdminSidebar({ className, mobileOpen = false, onMobileClose }) {
               />
             </div>
             {!isCollapsed && (
-              <div className="flex-1 min-w-0">
+              <div className="flex-1 min-w-0 animate-in fade-in duration-500">
                 <h1 className="text-base font-bold text-white truncate leading-tight">KKP Raja Ampat</h1>
                 <p className="text-[11px] text-sidebar-foreground/70 truncate">Content Management System</p>
               </div>
@@ -103,8 +105,7 @@ export function AdminSidebar({ className, mobileOpen = false, onMobileClose }) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto custom-scrollbar py-4 px-0">
-          {/* Main Nav */}
+        <nav className="flex-1 overflow-y-auto custom-scrollbar py-4 px-0 relative z-10">
           <div className="space-y-1">
             {!isCollapsed && (
               <p className="text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-wider px-4 mb-2">
@@ -116,14 +117,14 @@ export function AdminSidebar({ className, mobileOpen = false, onMobileClose }) {
                 key={item.to}
                 to={item.to}
                 className={({ isActive }) => cn(
-                  'nav-item',
-                  isActive && 'active',
-                  isCollapsed && 'justify-center px-2'
+                  'nav-item mx-2 flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/70 transition-all hover:bg-sidebar-accent hover:text-sidebar-foreground',
+                  isActive && 'bg-sidebar-accent text-white font-medium shadow-sm active',
+                  isCollapsed && 'justify-center px-2 mx-2'
                 )}
                 title={isCollapsed ? item.label : undefined}
                 onClick={handleMobileClose}
               >
-                <item.icon className="w-5 h-5 flex-shrink-0" />
+                <item.icon className={cn("w-5 h-5 flex-shrink-0", isCollapsed ? "" : "min-w-[20px]")} />
                 {!isCollapsed && <span className="truncate">{item.label}</span>}
               </NavLink>
             ))}
@@ -134,7 +135,7 @@ export function AdminSidebar({ className, mobileOpen = false, onMobileClose }) {
         <button
           type="button"
           onClick={() => setCollapsed(!collapsed)}
-          className="absolute -right-3 top-24 hidden md:flex bg-sidebar border border-sidebar-border rounded-full p-1.5 hover:bg-sidebar-accent transition-colors"
+          className="absolute -right-3 top-24 hidden md:flex bg-sidebar border border-sidebar-border rounded-full p-1.5 hover:bg-sidebar-accent transition-colors z-[60] shadow-md"
           aria-label={isCollapsed ? 'Perluas sidebar' : 'Perkecil sidebar'}
         >
           {isCollapsed ? (
@@ -145,43 +146,34 @@ export function AdminSidebar({ className, mobileOpen = false, onMobileClose }) {
         </button>
 
         {/* User Section */}
-        <div
-          className={cn(
-            'p-4 border-t border-sidebar-border',
-            isCollapsed && 'md:flex md:justify-center'
-          )}
-        >
+        <div className={cn('p-4 border-t border-sidebar-border bg-sidebar/40 backdrop-blur-md relative z-10', isCollapsed && 'md:flex md:justify-center')}>
           {!isCollapsed && (
-            <div className="mb-3 rounded-lg border border-sidebar-border/70 bg-sidebar-accent/30 p-2">
-              <p className="text-[10px] text-white uppercase tracking-wider">Bahasa</p>
-              <div className="mt-1 grid grid-cols-2 gap-1">
+            <div className="mb-3 rounded-lg border border-sidebar-border/70 bg-sidebar-accent/30 p-2 animate-in slide-in-from-bottom-2 duration-300">
+              <p className="text-[10px] text-white/60 uppercase tracking-wider font-bold mb-1.5">Bahasa</p>
+              <div className="grid grid-cols-2 gap-1.5">
                 <button
                   type="button"
                   onClick={() => setLanguage('id')}
                   className={cn(
-                    'rounded-md px-2 py-1 transition-colors flex items-center justify-center',
+                    'rounded-md px-2 py-1.5 transition-all flex items-center justify-center border',
                     language === 'id'
-                      ? 'bg-sidebar-primary/20 ring-1 ring-sidebar-primary/40'
-                      : 'hover:bg-sidebar-accent'
+                      ? 'bg-sidebar-primary/20 border-sidebar-primary/40 ring-1 ring-sidebar-primary/40'
+                      : 'border-transparent hover:bg-sidebar-accent'
                   )}
-                  aria-pressed={language === 'id'}
-                  aria-label="Bahasa Indonesia"
                 >
-                  <img src="/flags/id.svg" alt="Bendera Indonesia" className="h-4 w-6 rounded-[2px] object-cover" />
+                  <img src="/flags/id.svg" alt="ID" className="h-3 w-5 rounded-[1px] object-cover shadow-sm" />
                 </button>
                 <button
                   type="button"
                   onClick={() => setLanguage('en')}
                   className={cn(
-                    'rounded-md px-2 py-1 transition-colors flex items-center justify-center',
+                    'rounded-md px-2 py-1.5 transition-all flex items-center justify-center border',
                     language === 'en'
-                      ? 'bg-sidebar-primary/20 ring-1 ring-sidebar-primary/40'
-                      : 'hover:bg-sidebar-accent'
+                      ? 'bg-sidebar-primary/20 border-sidebar-primary/40 ring-1 ring-sidebar-primary/40'
+                      : 'border-transparent hover:bg-sidebar-accent'
                   )}
-                  aria-pressed={language === 'en'}
-                  aria-label="Bahasa Inggris"
                 >
-                  <img src="/flags/gb.svg" alt="Bendera Inggris" className="h-4 w-6 rounded-[2px] object-cover" />
+                  <img src="/flags/gb.svg" alt="EN" className="h-3 w-5 rounded-[1px] object-cover shadow-sm" />
                 </button>
               </div>
             </div>
@@ -190,26 +182,25 @@ export function AdminSidebar({ className, mobileOpen = false, onMobileClose }) {
           <div className={cn('flex items-center gap-3', isCollapsed && 'md:justify-center')}>
             <NavLink
               to="/profile"
-              className="flex items-center gap-3 flex-1 min-w-0 rounded-lg p-1.5 hover:bg-sidebar-accent transition-colors"
+              className="flex items-center gap-3 flex-1 min-w-0 rounded-lg p-1.5 hover:bg-sidebar-accent transition-colors group"
               onClick={handleMobileClose}
-              title="Profil"
             >
-              <div className="w-9 h-9 rounded-full bg-sidebar-primary/20 flex items-center justify-center flex-shrink-0">
-                <span className="text-sm font-semibold text-sidebar-primary">RH</span>
+              <div className="w-9 h-9 rounded-full bg-sidebar-primary/20 border border-sidebar-primary/30 flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110">
+                <span className="text-sm font-bold text-white">RH</span>
               </div>
               {!isCollapsed && (
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-sidebar-foreground truncate">Rudi Hartono</p>
-                  <p className="text-[10px] text-sidebar-foreground/60">Admin Utama</p>
+                  <p className="text-sm font-bold text-white truncate">Rudi Hartono</p>
+                  <p className="text-[10px] text-sidebar-foreground/60 font-medium">Admin Utama</p>
                 </div>
               )}
             </NavLink>
             {!isCollapsed && (
               <button
-                className="p-1.5 rounded-lg hover:bg-sidebar-accent transition-colors"
-                onClick={(event) => event.stopPropagation()}
+                className="p-2 rounded-lg hover:bg-red-500/20 text-sidebar-foreground/60 hover:text-red-400 transition-all"
+                title="Keluar"
               >
-                <LogOut className="w-4 h-4 text-sidebar-foreground/60" />
+                <LogOut className="w-4 h-4" />
               </button>
             )}
           </div>

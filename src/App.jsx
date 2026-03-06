@@ -4,6 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import OverviewPage from "./pages/OverviewPage";
+import BeritaPage from "./pages/Berita"; // Tambahkan ini
+import PublikasiPage from "./pages/Publikasi"; // Tambahkan ini
 import NotFound from "./pages/NotFound";
 import { LanguageProvider } from "./i18n/LanguageContext";
 import { LanguageRuntimeTranslator } from "./i18n/LanguageRuntimeTranslator";
@@ -20,6 +22,8 @@ const App = () => (
           <LanguageRuntimeTranslator />
           <Routes>
             <Route path="/" element={<OverviewPage />} />
+            <Route path="/Berita" element={<BeritaPage />} />
+            <Route path="/publikasi" element={<PublikasiPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
