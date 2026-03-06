@@ -233,6 +233,18 @@
   .data-table-compact td {
     @apply px-2.5 py-2.5;
   }
+
+  /* Red gradient button */
+  .btn-red {
+    background: linear-gradient(135deg, #b00c00 0%, #b00c00 100%); 
+    @apply text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 hover:opacity-90 hover:shadow-md;
+  }
+
+  /* Yellow gradient button */
+  .btn-yellow {
+    background: linear-gradient(135deg, #facc15 0%, #eab308 100%); 
+    @apply text-white font-medium px-4 py-2 rounded-lg transition-all duration-200 hover:opacity-90 hover:shadow-md;
+  }
   
   /* Ocean gradient button */
   .btn-ocean {
