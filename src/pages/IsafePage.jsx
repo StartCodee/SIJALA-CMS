@@ -1,5 +1,7 @@
+import { AdminLayout } from "@/components/AdminLayout";
+import { AdminHeader } from "@/components/AdminHeader";
 import { MapContainer, TileLayer, Marker, Polyline, Popup } from "react-leaflet";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,17 +10,19 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import dayjs from 'dayjs';
 import {
-  Search,
-  Download,
-  FileText,
-  Printer,
   Plus,
-  Check,
-  ChevronsUpDown,
-  TrendingUp,
-  TrendingDown,
-  Minus,
+  Wifi, 
+  WifiOff, 
+  Wrench, 
+  Radio
 } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const boatIcon = new L.Icon({
   iconUrl: "/boat.png",
@@ -29,18 +33,24 @@ const boatIcon = new L.Icon({
 const colors = ["red", "blue", "green", "orange", "purple"];
 
 export default function IsafePage() {
-
   const [boats, setBoats] = useState([]);
   const [name, setName] = useState("");
   const [lat, setLat] = useState("");
   const [lng, setLng] = useState("");
   const [status, setStatus] = useState("");
   const [device, setDevice] = useState("");
-  const [baterry, setBattery] = useState("");
+  const [battery, setBattery] = useState("");
+  const [showForm, setShowForm] = useState(false);
 
   const [editingId, setEditingId] = useState(null);
 
   const formattedDate = dayjs().format('YYYY-MM-DD HH:mm:ss');
+
+    const STATUS = {
+    ONLINE: "online",
+    OFFLINE: "offline",
+    MAINTENANCE: "maintenance"
+  };  
 
   useEffect(() => {
 
@@ -82,20 +92,20 @@ export default function IsafePage() {
 
     e.preventDefault();
 
-    if (!name || !lat || !lng || !status || !device || !baterry) {
+    if (!name || !lat || !lng || !status || !device || !battery) {
       alert("Lengkapi data kapal");
       return;
     }
 
     if (editingId) {
 
-      const updated = boats.map((b) =>
-        b.id === editingId
-          ? { ...b, name, lat: parseFloat(lat), lng: parseFloat(lng), status, device, baterry }
-          : b
+      setBoats(prev =>
+        prev.map(b =>
+          b.id === editingId
+            ? { ...b, name, lat: parseFloat(lat), lng: parseFloat(lng), status, device, battery }
+            : b
+        )
       );
-
-      setBoats(updated);
       setEditingId(null);
 
     } else {
@@ -107,15 +117,18 @@ export default function IsafePage() {
         lng: parseFloat(lng),
         status,
         device,
-        baterry,
+        battery,
         trail: [[parseFloat(lat), parseFloat(lng)]],
         color: colors[boats.length % colors.length],
       };
 
-      setBoats([...boats, newBoat]);
+      setBoats(prev => [...prev, newBoat]);
     }
 
+    console.log("status:", status);
+
     resetForm();
+    setShowForm(false);
   };
 
   const resetForm = () => {
@@ -129,31 +142,98 @@ export default function IsafePage() {
 
   const editBoat = (boat) => {
 
-    setName(boat.name);
-    setLat(boat.lat);
-    setLng(boat.lng);
-    setEditingId(boat.id);
-    setStatus(boat.status);
-    setDevice(boat.device);
-    setBattery(boat.baterry);
-  };
+  setName(boat.name);
+  setLat(boat.lat);
+  setLng(boat.lng);
+  setStatus(boat.status);
+  setDevice(boat.device);
+  setBattery(boat.battery);
+
+  setEditingId(boat.id);
+  setShowForm(true);
+};
 
   const deleteBoat = (id) => {
+  if (window.confirm("Apakah Anda yakin ingin menghapus tracker ini?")) {
 
-    const updated = boats.filter((b) => b.id !== id);
-    setBoats(updated);
-
+    setBoats(prev => prev.filter(b => b.id !== id));
+  }
   };
 
-  return (
-    <div style={{ padding: 20 }}>
+  const stats = useMemo(() => {
 
+    return {
+      online: boats.filter(b => b.status === STATUS.ONLINE).length,
+      offline: boats.filter(b => b.status === STATUS.OFFLINE).length,
+      maintenance: boats.filter(b => b.status === STATUS.MAINTENANCE).length,
+      total: boats.length
+    };
+
+  }, [boats]);
+
+  return (
+    <AdminLayout>
+      <AdminHeader
+       title="Isafe Page"
+        subtitle="Content Management System"
+        showSearch={false}
+        showDateFilter={false}
+      />
+      <div className="flex-1 overflow-y-auto p-6">
       <h2>Boat Tracker CMS</h2>
+<br />
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+
+  <Card className="p-5 bg-green-50 border">
+    <div className="flex justify-between items-start">
+      <div>
+        <p className="text-sm text-gray-600">Devices Online</p>
+        <p className="text-3xl font-bold text-green-600">{stats.online}</p>
+        <p className="text-sm text-gray-500">Total Tracker</p>
+      </div>
+      <Wifi className="text-green-500" />
+    </div>
+  </Card>
+
+  <Card className="p-5 bg-red-50 border">
+    <div className="flex justify-between items-start">
+      <div>
+        <p className="text-sm text-gray-600">Devices Offline</p>
+        <p className="text-3xl font-bold text-red-600">{stats.offline}</p>
+        <p className="text-sm text-gray-500">Total Tracker</p>
+      </div>
+      <WifiOff className="text-red-500" />
+    </div>
+  </Card>
+
+  <Card className="p-5 bg-yellow-50 border">
+    <div className="flex justify-between items-start">
+      <div>
+        <p className="text-sm text-gray-600">Maintenance</p>
+        <p className="text-3xl font-bold text-yellow-600">{stats.maintenance}</p>
+        <p className="text-sm text-gray-500">Total Tracker</p>
+      </div>
+      <Wrench className="text-yellow-500" />
+    </div>
+  </Card>
+
+  <Card className="p-5 bg-blue-50 border">
+    <div className="flex justify-between items-start">
+      <div>
+        <p className="text-sm text-gray-600">Total Devices</p>
+        <p className="text-3xl font-bold text-blue-600">{stats.total}</p>
+        <p className="text-sm text-gray-500">Spot Tracker</p>
+      </div>
+      <Radio className="text-blue-500" />
+    </div>
+  </Card>
+
+</div>
 
       <MapContainer
-        center={[-6.2, 106.8]}
-        zoom={11}
-        style={{ height: 500 }}
+        center={[-6.2, 106.816666]}
+        zoom={13}
+        style={{ height: "400px", width: "100%" }}
       >
 
         <TileLayer
@@ -187,75 +267,109 @@ export default function IsafePage() {
 
       </MapContainer>
 
-      <br />
+     {showForm && (
+  <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999]">
 
-      <form onSubmit={saveBoat}>
+    <Card className="w-[420px] relative z-[10000]">
 
-        <div>
-          <label>Nama Tracker</label>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-        </div>
+      <CardHeader>
+        <CardTitle>
+          {editingId ? "Edit Tracker" : "Tambah Tracker"}
+        </CardTitle>
+      </CardHeader>
 
-        <div>
-          <label>Latitude</label>
-          <input
-            value={lat}
-            onChange={(e) => setLat(e.target.value)}
-          />
-        </div>
+      <CardContent>
 
-        <div>
-          <label>Longitude</label>
-          <input
-            value={lng}
-            onChange={(e) => setLng(e.target.value)}
-          />
-        </div>
+        <form onSubmit={saveBoat} className="space-y-3">
 
-         <div>
-          <label>Status</label>
-          <input
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-          />
-        </div>
+          <div>
+            <Label>Nama Kapal</Label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
 
-        <div>
-          <label>Device</label>
-          <input
-            value={device}
-            onChange={(e) => setDevice(e.target.value)}
-          />
-        </div>
+          <div>
+            <Label>Latitude</Label>
+            <Input
+              value={lat}
+              onChange={(e) => setLat(e.target.value)}
+            />
+          </div>
 
-        <div>
-          <label>Baterai</label>
-          <input
-            value={baterry}
-            onChange={(e) => setBattery(e.target.value)}
-          />
-        </div>
+          <div>
+            <Label>Longitude</Label>
+            <Input
+              value={lng}
+              onChange={(e) => setLng(e.target.value)}
+            />
+          </div>
 
-        <button type="submit">
-          {editingId ? "Update Tracker" : "Tambah Tracker"}
-        </button>
+          <div>
+              <Label>Status Device</Label>
+              <Select
+                value={status}
+                onValueChange={(value) => setStatus(value)}
+              >
 
-        {editingId && (
-          <button
-            type="button"
-            onClick={() => {
-              setEditingId(null);
-              resetForm();
-            }}
-          >
-            Cancel
-          </button>
-        )}
+                <SelectTrigger className="bg-background">
+                  <SelectValue placeholder="Pilih Status" />
+                </SelectTrigger>
 
-      </form>
+                <SelectContent className="z-[9999]">
+                  <SelectItem value={STATUS.ONLINE}>Online</SelectItem>
+                  <SelectItem value={STATUS.OFFLINE}>Offline</SelectItem>
+                  <SelectItem value={STATUS.MAINTENANCE}>Maintenance</SelectItem>
+                </SelectContent>
+
+              </Select>
+            </div>
+
+          <div>
+            <Label>Device</Label>
+            <Input
+              value={device}
+              onChange={(e) => setDevice(e.target.value)}
+            />
+          </div>
+
+          <div>
+            <Label>Baterai</Label>
+            <Input
+              value={battery}
+              onChange={(e) => setBattery(e.target.value)}
+            />
+          </div>
+
+          <div className="flex gap-2 pt-2">
+
+            <Button type="submit" className="btn-ocean flex-1">
+              {editingId ? "Update" : "Tambah"}
+            </Button>
+
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setShowForm(false);
+                setEditingId(null);
+                resetForm();
+              }}
+            >
+              Cancel
+            </Button>
+
+          </div>
+
+        </form>
+
+      </CardContent>
+
+    </Card>
+
+  </div>
+)}
 
       <br />
 
@@ -265,7 +379,7 @@ export default function IsafePage() {
           </div>
           <Button
             className="btn-ocean gap-2 w-full sm:w-auto lg:h-10 lg:shrink-0"
-            // onClick={openAddModal}
+            onClick={() => setShowForm(true)}
           >
             <Plus className="w-4 h-4" />
             Tambah Tracker
@@ -299,7 +413,7 @@ export default function IsafePage() {
                           <td>{boat.lat.toFixed(6)}, {boat.lng.toFixed(6)}</td>
                           <td><span className="bg-status-pending-bg text-status-pending">{boat.status}</span></td>
                           <td><span className="bg-status-rejected-bg text-status-rejected">{boat.device}</span></td>
-                          <td><span className="bg-status-approved-bg text-status-approved">{boat.baterry}</span></td>
+                          <td><span className="bg-status-approved-bg text-status-approved">{boat.battery}</span></td>
                           <td><span className="font-medium">{formattedDate}</span></td>
                           <td className="flex gap-2"> 
                           <Button 
@@ -328,5 +442,7 @@ export default function IsafePage() {
       
 
     </div>
+        </AdminLayout>
+    
   );
 }
