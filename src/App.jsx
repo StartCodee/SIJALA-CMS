@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import OverviewPage from "./pages/OverviewPage";
 import NotFound from "./pages/NotFound";
 import RamsPage from "./pages/Rams";
+import IsafePage from "./pages/IsafePage"; 
 import { LanguageProvider } from "./i18n/LanguageContext";
 import { LanguageRuntimeTranslator } from "./i18n/LanguageRuntimeTranslator";
 import 'leaflet/dist/leaflet.css';
@@ -25,6 +26,8 @@ const App = () => (
             <Route path="/" element={<OverviewPage />} />
             <Route path="*" element={<NotFound />} />
             <Route path="/rams" element={<RamsPage />} />
+            <Route path="/i-safe" element={<IsafePage />} />
+
           </Routes>
         </BrowserRouter>
       </TooltipProvider>

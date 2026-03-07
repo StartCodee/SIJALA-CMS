@@ -15,6 +15,7 @@ import { useLanguage } from '@/i18n/LanguageContext';
 const mainNavItems = [
   { to: '/', icon: LayoutDashboard, label: 'Ringkasan' },
   { to: '/rams', icon: LayoutDashboard, label: 'RAMS' },
+  { to: '/i-safe', icon: LayoutDashboard, label: 'I-SAFE' },
 
 ];
 
