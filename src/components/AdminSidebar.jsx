@@ -20,6 +20,7 @@ const mainNavItems = [
   { to: '/', icon: LayoutDashboard, label: 'Ringkasan' },
   { to: '/rams', icon: LayoutDashboard, label: 'RAMS' },
   { to: '/i-safe', icon: LayoutDashboard, label: 'I-SAFE' },
+  { to: '/juara-kami', icon: LayoutDashboard, label: 'Juara Kami' },
   { to: '/Berita', icon: Newspaper, label: 'Berita' },
   { to: '/Publikasi', icon: BookOpen, label: 'Publikasi' }, 
   { to: '/KalenderKegiatan', icon: CalendarDays, label: 'Kalender Kegiatan' } 
