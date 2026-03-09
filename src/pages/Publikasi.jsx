@@ -6,7 +6,7 @@ import {
   Search, Plus, Pencil, Trash2, X, 
   FileText, Upload, Tag, Download,
   Filter, CheckCircle2, ChevronDown, Calendar, User, Clock,
-  FileDown, BookOpen 
+  FileDown, BookOpen, ChevronLeft, ChevronRight 
 } from 'lucide-react';
 
 export default function PublikasiPage() {
@@ -49,6 +49,10 @@ export default function PublikasiPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [newCatName, setNewCatName] = useState("");
 
+  // STATE PAGINATION
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   const [currentPub, setCurrentPub] = useState({ 
     id: '', title: '', author: 'Admin Satker', category: 'LAPORAN', 
     content: '', thumbnail: null, subjudul: '', status: 'DRAFT', 
@@ -65,7 +69,25 @@ export default function PublikasiPage() {
     };
   }, [publikasiData]);
 
-  // --- 3. LOGIKA FUNGSI ---
+  // --- 3. LOGIKA FILTER, SORT, & PAGINATION ---
+  const sortedAndFilteredData = useMemo(() => {
+    return publikasiData
+      .filter(item => {
+        const matchesSearch = item.title.toLowerCase().includes(search.toLowerCase());
+        const matchesCategory = selectedCategory === "Semua" || item.category === selectedCategory;
+        return matchesSearch && matchesCategory;
+      })
+      .sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [publikasiData, search, selectedCategory]);
+
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return sortedAndFilteredData.slice(startIndex, startIndex + itemsPerPage);
+  }, [sortedAndFilteredData, currentPage]);
+
+  const totalPages = Math.ceil(sortedAndFilteredData.length / itemsPerPage);
+
+  // --- 4. HANDLERS ---
   const handleSave = (e) => {
     e.preventDefault();
     if (isEditing) {
@@ -101,12 +123,6 @@ export default function PublikasiPage() {
       });
     }
   };
-
-  const filteredData = publikasiData.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = selectedCategory === "Semua" || item.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
 
   return (
     <AdminLayout>
@@ -144,12 +160,12 @@ export default function PublikasiPage() {
           <div className="flex flex-1 gap-3 items-center">
             <div className="relative flex-1 lg:max-w-[400px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input type="text" placeholder="Cari Publikasi..." value={search} onChange={(e) => setSearch(e.target.value)}
+              <input type="text" placeholder="Cari Publikasi..." value={search} onChange={(e) => {setSearch(e.target.value); setCurrentPage(1);}}
                 className="w-full pl-9 pr-4 py-2 text-sm rounded-md border border-slate-200 outline-none focus:border-[#234E8D] bg-white shadow-sm" />
             </div>
             <div className="relative">
               <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}
+              <select value={selectedCategory} onChange={(e) => {setSelectedCategory(e.target.value); setCurrentPage(1);}}
                 className="pl-9 pr-8 py-2 text-sm rounded-md border border-slate-200 bg-white outline-none focus:border-[#234E8D] appearance-none min-w-[160px] shadow-sm font-medium text-slate-600 cursor-pointer">
                 <option value="Semua">Semua Kategori</option>
                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
@@ -174,7 +190,7 @@ export default function PublikasiPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredData.map((item) => (
+              {paginatedData.map((item) => (
                 <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-5 py-4 flex gap-4 items-center">
                     <div className="w-14 h-14 rounded-lg bg-slate-100 overflow-hidden border border-slate-200 shrink-0">
@@ -185,11 +201,7 @@ export default function PublikasiPage() {
                       <span className="text-[11px] text-slate-400 line-clamp-1 italic font-medium">{item.subjudul || 'Tidak ada sub judul'}</span>
                       <div className="flex items-center gap-3 mt-1 text-[10px] text-slate-500">
                         <div className="flex items-center gap-1 font-semibold"><User size={12}/> {item.author}</div>
-                        {item.status === 'DRAFT' ? (
-                          <div className="flex items-center gap-1 text-orange-500 font-bold uppercase tracking-wider"><Clock size={12}/> Pending</div>
-                        ) : (
-                          <div className="flex items-center gap-1"><Calendar size={12}/> {new Date(item.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
-                        )}
+                        <div className="flex items-center gap-1"><Calendar size={12}/> {new Date(item.date).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' })}</div>
                       </div>
                     </div>
                   </td>
@@ -214,6 +226,30 @@ export default function PublikasiPage() {
               ))}
             </tbody>
           </table>
+
+          {/* FOOTER PAGINATION */}
+          <div className="px-5 py-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+              Menampilkan {paginatedData.length} dari {sortedAndFilteredData.length} Data
+            </p>
+            <div className="flex gap-2">
+              <button 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => prev - 1)}
+                className="p-2 border border-slate-200 rounded-lg hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+                <ChevronLeft size={16} className="text-slate-600"/>
+              </button>
+              <div className="flex items-center px-4 bg-white border border-slate-200 rounded-lg text-xs font-bold text-[#234E8D]">
+                {currentPage} / {totalPages || 1}
+              </div>
+              <button 
+                disabled={currentPage === totalPages || totalPages === 0}
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                className="p-2 border border-slate-200 rounded-lg hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+                <ChevronRight size={16} className="text-slate-600"/>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -227,10 +263,7 @@ export default function PublikasiPage() {
             </div>
             
             <form onSubmit={handleSave} className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
-              
-              {/* TOP GRID: MEDIA & INPUT TEXT */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
-                
                 {/* LEFT SIDE: THUMBNAIL & PDF */}
                 <div className="md:col-span-4 flex flex-col gap-4">
                   <div className="flex-1">
@@ -283,20 +316,14 @@ export default function PublikasiPage() {
                       <input required type="text" value={currentPub.author} onChange={(e) => setCurrentPub({...currentPub, author: e.target.value})} className="w-full p-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:border-[#234E8D] bg-white shadow-sm font-semibold" placeholder="Nama penulis..." />
                     </div>
                   </div>
-
                   <div className="flex-1 flex flex-col space-y-1.5">
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Ringkasan Singkat / Sub Judul</label>
-                    <textarea 
-                      value={currentPub.subjudul} 
-                      onChange={(e) => setCurrentPub({...currentPub, subjudul: e.target.value})} 
-                      className="w-full flex-1 min-h-[120px] p-3 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#234E8D] bg-white shadow-sm resize-none italic leading-relaxed" 
-                      placeholder="Tulis ringkasan publikasi di sini..." 
-                    />
+                    <textarea value={currentPub.subjudul} onChange={(e) => setCurrentPub({...currentPub, subjudul: e.target.value})} className="w-full flex-1 min-h-[120px] p-3 border border-slate-200 rounded-xl text-sm outline-none focus:border-[#234E8D] bg-white shadow-sm resize-none italic leading-relaxed" placeholder="Tulis ringkasan publikasi di sini..." />
                   </div>
                 </div>
               </div>
 
-              {/* METADATA BAR - TANPA KOTAK PEMBUNGKUS */}
+              {/* METADATA BAR */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold text-slate-500 uppercase ml-1">Tanggal Terbit</label>
@@ -336,21 +363,26 @@ export default function PublikasiPage() {
                     apiKey={TINY_API_KEY}
                     value={currentPub.content}
                     onEditorChange={(val) => setCurrentPub({...currentPub, content: val})}
-                    init={{ 
-                      height: 300, 
-                      menubar: true,
-                      plugins: ['link', 'lists', 'image', 'table', 'code'],
-                      toolbar: 'undo redo | fontfamily fontsize | bold italic | alignleft aligncenter alignright | bullist numlist | link image | code',
-                      branding: false,
-                    }}
+                    init={{ height: 300, menubar: true, plugins: ['link', 'lists', 'image', 'table', 'code'], toolbar: 'undo redo | fontfamily fontsize | bold italic | alignleft aligncenter alignright | bullist numlist | link image | code', branding: false }}
                   />
                 </div>
               </div>
 
               {/* ACTIONS */}
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3 border border-slate-200 rounded-xl font-bold text-slate-400 text-[10px] uppercase tracking-widest hover:bg-slate-50 transition-all">Batal</button>
-                <button type="submit" className="flex-1 bg-[#234E8D] text-white py-3 rounded-xl font-bold text-[10px] uppercase tracking-widest shadow-lg hover:shadow-[#234E8D]/20 hover:bg-[#1C3F72] transition-all">Simpan Publikasi</button>
+              <div className="flex gap-3 pt-4 justify-end">
+                <button 
+                  type="button" 
+                  onClick={() => setIsModalOpen(false)} 
+                  className="px-6 py-2 border border-slate-200 rounded-md font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors text-sm shadow-sm"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit" 
+                  className="px-6 py-2 bg-[#234E8D] text-white rounded-md font-semibold text-sm shadow-md hover:bg-[#1C3F72] flex items-center justify-center gap-2 transition-all"
+                >
+                  <CheckCircle2 size={16}/> Simpan Publikasi
+                </button>
               </div>
             </form>
           </div>

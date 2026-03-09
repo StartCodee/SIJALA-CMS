@@ -6,7 +6,7 @@ import {
   Search, Plus, Pencil, Trash2, X, 
   Image as ImageIcon, Upload, Tag, 
   Filter, CheckCircle2, ChevronDown, Calendar, User, Clock,
-  Newspaper, Link as LinkIcon
+  Newspaper, Link as LinkIcon, ChevronLeft, ChevronRight
 } from 'lucide-react';
 
 export default function BeritaPage() {
@@ -48,22 +48,39 @@ export default function BeritaPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [newCatName, setNewCatName] = useState("");
 
+  // --- 2. LOGIKA PAGINATION (10 DATA) ---
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 10;
+
   const [currentNews, setCurrentNews] = useState({ 
     id: '', title: '', author: 'Admin Satker', category: 'UMUM', 
     content: '', thumbnail: null, subjudul: '', status: 'DRAFT', 
     linkSource: '', date: new Date().toISOString().split('T')[0] 
   });
 
-  // --- 2. LOGIKA STATISTIK ---
-  const stats = useMemo(() => {
-    return {
-      total: newsData.length,
-      published: newsData.filter(n => String(n.status).toUpperCase() === 'PUBLISH').length,
-      draft: newsData.filter(n => String(n.status).toUpperCase() === 'DRAFT').length
-    };
-  }, [newsData]);
+  // --- 3. LOGIKA FILTER & SEARCH ---
+  const filteredData = useMemo(() => {
+    return newsData.filter(item => {
+      const matchesSearch = item.title.toLowerCase().includes(search.toLowerCase());
+      const matchesCategory = selectedCategory === "Semua" || item.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    }).sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [newsData, search, selectedCategory]);
 
-  // --- 3. LOGIKA FUNGSI ---
+  const paginatedData = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredData.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredData, currentPage]);
+
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage) || 1;
+
+  const stats = useMemo(() => ({
+    total: newsData.length,
+    published: newsData.filter(n => String(n.status).toUpperCase() === 'PUBLISH').length,
+    draft: newsData.filter(n => String(n.status).toUpperCase() === 'DRAFT').length
+  }), [newsData]);
+
+  // --- 4. HANDLERS ---
   const handleSave = (e) => {
     e.preventDefault();
     if (isEditing) {
@@ -72,6 +89,7 @@ export default function BeritaPage() {
       setNewsData(prev => [{ ...currentNews, id: Date.now() }, ...prev]);
     }
     setIsModalOpen(false);
+    setCurrentPage(1);
   };
 
   const openModal = (news = null) => {
@@ -89,17 +107,11 @@ export default function BeritaPage() {
     setIsModalOpen(true);
   };
 
-  const filteredNews = newsData.filter(item => {
-    const matchesSearch = item.title.toLowerCase().includes(search.toLowerCase());
-    const matchesCategory = selectedCategory === "Semua" || item.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
-
   return (
     <AdminLayout>
       <AdminHeader title="Manajemen Berita" subtitle="Kelola konten dan publikasi berita" showSearch={false} />
       
-      <div className="flex-1 overflow-auto p-6 space-y-6 bg-slate-50/30">
+      <div className="flex-1 overflow-auto p-6 space-y-6 bg-slate-50/30 font-sans">
         
         {/* STATS CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -131,12 +143,12 @@ export default function BeritaPage() {
           <div className="flex flex-1 gap-3 items-center">
             <div className="relative flex-1 lg:max-w-[400px]">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input type="text" placeholder="Cari Berita..." value={search} onChange={(e) => setSearch(e.target.value)}
+              <input type="text" placeholder="Cari Berita..." value={search} onChange={(e) => {setSearch(e.target.value); setCurrentPage(1);}}
                 className="w-full pl-9 pr-4 py-2 text-sm rounded-md border border-slate-200 outline-none focus:border-[#234E8D] bg-white shadow-sm" />
             </div>
             <div className="relative">
               <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-              <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}
+              <select value={selectedCategory} onChange={(e) => {setSelectedCategory(e.target.value); setCurrentPage(1);}}
                 className="pl-9 pr-8 py-2 text-sm rounded-md border border-slate-200 bg-white outline-none focus:border-[#234E8D] appearance-none min-w-[160px] shadow-sm font-medium text-slate-600 cursor-pointer">
                 <option value="Semua">Semua Kategori</option>
                 {categories.map(c => <option key={c} value={c}>{c}</option>)}
@@ -145,7 +157,7 @@ export default function BeritaPage() {
             </div>
           </div>
           <button onClick={() => openModal()} className="bg-[#234E8D] text-white px-4 py-2 rounded-md font-semibold text-sm flex items-center justify-center gap-2 h-10 shadow-md hover:bg-[#1C3F72]">
-            <Plus className="w-4 h-4" /> Tambah Berita
+              <Plus className="w-4 h-4" /> Tambah Berita
           </button>
         </div>
 
@@ -161,7 +173,7 @@ export default function BeritaPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
-              {filteredNews.map((item) => (
+              {paginatedData.map((item) => (
                 <tr key={item.id} className="hover:bg-slate-50/50 transition-colors">
                   <td className="px-5 py-4 flex gap-4 items-center">
                     <div className="w-14 h-14 rounded-lg bg-slate-100 overflow-hidden border border-slate-200 shrink-0">
@@ -200,24 +212,44 @@ export default function BeritaPage() {
               ))}
             </tbody>
           </table>
+
+          {/* FOOTER PAGINATION - CUSTOM REQUEST */}
+          <div className="px-5 py-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+              Menampilkan {paginatedData.length} dari {filteredData.length} Data
+            </p>
+            <div className="flex gap-2">
+              <button 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => prev - 1)}
+                className="p-2 border border-slate-200 rounded-lg hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+                <ChevronLeft size={16} className="text-slate-600"/>
+              </button>
+              <div className="flex items-center px-4 bg-white border border-slate-200 rounded-lg text-xs font-bold text-[#234E8D]">
+                {currentPage} / {totalPages || 1}
+              </div>
+              <button 
+                disabled={currentPage === totalPages || totalPages === 0}
+                onClick={() => setCurrentPage(prev => prev + 1)}
+                className="p-2 border border-slate-200 rounded-lg hover:bg-white disabled:opacity-30 disabled:cursor-not-allowed transition-all">
+                <ChevronRight size={16} className="text-slate-600"/>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* MODAL INPUT BERITA */}
+      {/* MODAL INPUT BERITA (KATEGORI SEJAJAR) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-[95vh] overflow-hidden font-sans">
+          <div className="bg-white w-full max-w-5xl rounded-2xl shadow-2xl flex flex-col max-h-[95vh] overflow-hidden">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <h3 className="text-lg font-bold text-slate-800 uppercase tracking-tight">{isEditing ? 'Edit Konten Berita' : 'Tambah Berita Baru'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="p-2 hover:bg-slate-200 rounded-full transition-colors"><X size={20} className="text-slate-400"/></button>
             </div>
             
             <form onSubmit={handleSave} className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
-              
-              {/* TOP SECTION: MEDIA & TEXT (STRETCHED) */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-stretch">
-                
-                {/* LEFT: BANNER PREVIEW */}
                 <div className="md:col-span-4 flex flex-col gap-2">
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Banner Utama</label>
                   <div className="relative aspect-video h-[185px] rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden group hover:border-[#234E8D] transition-all shadow-inner">
@@ -240,7 +272,6 @@ export default function BeritaPage() {
                   </div>
                 </div>
 
-                {/* RIGHT: TITLE & EXTENDED SUBTITLE */}
                 <div className="md:col-span-8 flex flex-col gap-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
@@ -253,7 +284,6 @@ export default function BeritaPage() {
                     </div>
                   </div>
 
-                  {/* SUBJUDUL - SEKARANG MENGISI RUANG KOSONG (FLEX-1) */}
                   <div className="flex-1 flex flex-col space-y-1.5">
                     <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Ringkasan / Subjudul Berita</label>
                     <textarea 
@@ -266,18 +296,17 @@ export default function BeritaPage() {
                 </div>
               </div>
 
-              {/* METADATA FIELDS - TANPA KOTAK PEMBUNGKUS BESAR */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {/* BARIS INPUT SEJAJAR */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-bold text-slate-400 uppercase ml-1 tracking-wider">Tanggal Dibuat</label>
-                  <input type="date" value={currentNews.date} onChange={(e) => setCurrentNews({...currentNews, date: e.target.value})} className="w-full p-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:border-[#234E8D] bg-white shadow-sm cursor-pointer" />
+                  <input type="date" value={currentNews.date} onChange={(e) => setCurrentNews({...currentNews, date: e.target.value})} className="w-full h-11 p-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:border-[#234E8D] bg-white shadow-sm cursor-pointer" />
                 </div>
-
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-bold text-slate-400 uppercase ml-1 tracking-wider">Kategori Konten</label>
-                  <div className="flex gap-2">
+                  <div className="flex gap-1 h-11">
                     <div className="relative flex-1">
-                      <select value={currentNews.category} onChange={(e) => setCurrentNews({...currentNews, category: e.target.value})} className="w-full p-2.5 pr-10 border border-slate-200 rounded-lg text-sm bg-white outline-none focus:border-[#234E8D] appearance-none cursor-pointer font-bold text-slate-700 shadow-sm">
+                      <select value={currentNews.category} onChange={(e) => setCurrentNews({...currentNews, category: e.target.value})} className="w-full h-full p-2.5 pr-10 border border-slate-200 rounded-lg text-sm bg-white outline-none focus:border-[#234E8D] appearance-none cursor-pointer font-bold text-slate-700 shadow-sm">
                         {categories.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                       <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
@@ -285,25 +314,22 @@ export default function BeritaPage() {
                     <button type="button" onClick={() => setIsCatModalOpen(true)} className="px-3 bg-white border border-slate-200 rounded-lg text-[#234E8D] font-black hover:bg-blue-50 transition-colors shadow-sm">+</button>
                   </div>
                 </div>
-
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-bold text-slate-400 uppercase ml-1 tracking-wider">Status Publish</label>
-                  <div className="relative">
-                    <select value={currentNews.status} onChange={(e) => setCurrentNews({...currentNews, status: e.target.value})} className="w-full p-2.5 pr-10 border border-slate-200 rounded-lg text-sm font-bold text-[#234E8D] bg-white outline-none focus:border-[#234E8D] appearance-none cursor-pointer shadow-sm">
-                      <option value="DRAFT">DRAFT (Sembunyikan)</option>
-                      <option value="PUBLISH">PUBLISH (Tampilkan)</option>
+                  <div className="relative h-11">
+                    <select value={currentNews.status} onChange={(e) => setCurrentNews({...currentNews, status: e.target.value})} className="w-full h-full p-2.5 pr-10 border border-slate-200 rounded-lg text-sm font-bold text-[#234E8D] bg-white outline-none focus:border-[#234E8D] appearance-none cursor-pointer shadow-sm">
+                      <option value="DRAFT">DRAFT</option>
+                      <option value="PUBLISH">PUBLISH</option>
                     </select>
                     <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#234E8D] pointer-events-none" />
                   </div>
                 </div>
-
                 <div className="space-y-1.5">
                   <label className="text-[9px] font-bold text-slate-400 uppercase ml-1 tracking-wider flex items-center gap-1"><LinkIcon size={10}/> Sumber Referensi</label>
-                  <input type="text" value={currentNews.linkSource} onChange={(e) => setCurrentNews({...currentNews, linkSource: e.target.value})} className="w-full p-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:border-[#234E8D] bg-white shadow-sm" placeholder="URL Link..." />
+                  <input type="text" value={currentNews.linkSource} onChange={(e) => setCurrentNews({...currentNews, linkSource: e.target.value})} className="w-full h-11 p-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:border-[#234E8D] bg-white shadow-sm" placeholder="URL Link..." />
                 </div>
               </div>
 
-              {/* EDITOR KONTEN */}
               <div className="space-y-2">
                 <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
                   <Newspaper size={14} className="text-[#234E8D]"/> Narasi Lengkap Berita
@@ -323,11 +349,20 @@ export default function BeritaPage() {
                   />
                 </div>
               </div>
-
-              {/* ACTIONS */}
-              <div className="flex gap-4 pt-2">
-                <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-3.5 border border-slate-200 rounded-xl font-bold text-slate-400 text-[11px] uppercase tracking-widest hover:bg-slate-50 transition-all">Batal</button>
-                <button type="submit" className="flex-1 bg-[#234E8D] text-white py-3.5 rounded-xl font-bold text-[11px] uppercase tracking-widest shadow-lg hover:shadow-[#234E8D]/20 hover:bg-[#1C3F72] transition-all">Simpan Berita</button>
+              <div className="flex gap-3 pt-4 justify-end">
+                <button 
+                  type="button" 
+                  onClick={() => setIsModalOpen(false)} 
+                  className="px-6 py-2 border border-slate-200 rounded-md font-semibold text-slate-600 bg-white hover:bg-slate-50 transition-colors text-sm shadow-sm"
+                >
+                  Batal
+                </button>
+                <button 
+                  type="submit" 
+                  className="px-6 py-2 bg-[#234E8D] text-white rounded-md font-semibold text-sm shadow-md hover:bg-[#1C3F72] flex items-center justify-center gap-2 transition-all"
+                >
+                  <CheckCircle2 size={16}/> Simpan Berita
+                </button>
               </div>
             </form>
           </div>
