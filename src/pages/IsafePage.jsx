@@ -93,7 +93,7 @@ export default function IsafePage() {
     e.preventDefault();
 
     if (!name || !lat || !lng || !status || !device || !battery) {
-      alert("Lengkapi data kapal");
+      alert("Lengkapi data tracker");
       return;
     }
 
@@ -283,7 +283,7 @@ export default function IsafePage() {
         <form onSubmit={saveBoat} className="space-y-3">
 
           <div>
-            <Label>Nama Kapal</Label>
+            <Label>Nama Tracker</Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}
