@@ -411,9 +411,9 @@ export default function IsafePage() {
                           <td>{boat.id}</td>
                           <td>{boat.name}</td>
                           <td>{boat.lat.toFixed(6)}, {boat.lng.toFixed(6)}</td>
-                          <td><span className="bg-status-pending-bg text-status-pending">{boat.status}</span></td>
-                          <td><span className="bg-status-rejected-bg text-status-rejected">{boat.device}</span></td>
-                          <td><span className="bg-status-approved-bg text-status-approved">{boat.battery}</span></td>
+                          <td><span className="px-2 py-0.5 rounded text-[9px] font-black uppercase border border-yellow-100 bg-yellow-50 text-yellow-700">{boat.status}</span></td>
+                          <td><span className="px-2 py-0.5 rounded text-[9px] font-black uppercase border border-red-100 bg-red-50 text-red-700">{boat.device}</span></td>
+                          <td><span className="px-2 py-0.5 rounded text-[9px] font-black uppercase border border-green-100 bg-green-50 text-green-700">{boat.battery}</span></td>
                           <td><span className="font-medium">{formattedDate}</span></td>
                           <td className="flex gap-2"> 
                           <Button 

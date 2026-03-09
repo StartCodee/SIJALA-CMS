@@ -10,6 +10,7 @@ import KalenderKegiatanPage from "./pages/KalenderKegiatan"; // 1. Pastikan impo
 import NotFound from "./pages/NotFound";
 import RamsPage from "./pages/Rams";
 import IsafePage from "./pages/IsafePage"; 
+import JuaraKamiPage from "./pages/JuaraKami"; 
 import { LanguageProvider } from "./i18n/LanguageContext";
 import { LanguageRuntimeTranslator } from "./i18n/LanguageRuntimeTranslator";
 import 'leaflet/dist/leaflet.css';
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/KalenderKegiatan" element={<KalenderKegiatanPage />} />
             <Route path="/rams" element={<RamsPage />} />
             <Route path="/i-safe" element={<IsafePage />} />
+            <Route path="/juara-kami" element={<JuaraKamiPage />} />
             {/* Route Catch-all (Wildcard) harus di paling bawah */}
             <Route path="*" element={<NotFound />} />
           </Routes>
