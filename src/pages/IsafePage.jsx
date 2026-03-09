@@ -30,6 +30,13 @@ const boatIcon = new L.Icon({
   iconAnchor: [17, 17],
 });
 
+  const STATUS = {
+    ONLINE: "online",
+    OFFLINE: "offline",
+    MAINTENANCE: "maintenance"
+  };  
+
+
 const colors = ["red", "blue", "green", "orange", "purple"];
 
 export default function IsafePage() {
@@ -46,54 +53,42 @@ export default function IsafePage() {
 
   const formattedDate = dayjs().format('YYYY-MM-DD HH:mm:ss');
 
-    const STATUS = {
-    ONLINE: "online",
-    OFFLINE: "offline",
-    MAINTENANCE: "maintenance"
-  };  
-
   useEffect(() => {
-
-  const interval = setInterval(() => {
-
-    setBoats(prevBoats =>
-  prevBoats.map(boat => {
-
-    const newLat = parseFloat(
-      (boat.lat + (Math.random() - 0.5) * 0.001).toFixed(6)
-    );
-
-    const newLng = parseFloat(
-      (boat.lng + (Math.random() - 0.5) * 0.001).toFixed(6)
-    );
-
-    if (boat.id === editingId) {
-      setLat(newLat.toString());
-      setLng(newLng.toString());
+    if (editingId) {
+      const currentBoat = boats.find(b => b.id === editingId);
+      if (currentBoat) {
+        setLat(currentBoat.lat.toString());
+        setLng(currentBoat.lng.toString());
+      }
     }
+  }, [boats, editingId]);
+  
+ useEffect(() => {
+    const interval = setInterval(() => {
+      setBoats(prevBoats =>
+        prevBoats.map(boat => {
+          const newLat = parseFloat((boat.lat + (Math.random() - 0.5) * 0.001).toFixed(6));
+          const newLng = parseFloat((boat.lng + (Math.random() - 0.5) * 0.001).toFixed(6));
+          
+          return {
+            ...boat,
+            lat: newLat,
+            lng: newLng,
+            trail: [...boat.trail.slice(-100), [newLat, newLng]]
+          };
+        })
+      );
+    }, 2000);
 
-    return {
-      ...boat,
-      lat: newLat,
-      lng: newLng,
-      trail: [...boat.trail.slice(-100), [newLat, newLng]]
-    };
-
-  })
-);
-
-  }, 2000);
-
-  return () => clearInterval(interval);
-
-}, [editingId]);
+    return () => clearInterval(interval);
+  }, []);
 
   const saveBoat = (e) => {
 
     e.preventDefault();
 
     if (!name || !lat || !lng || !status || !device || !battery) {
-      alert("Lengkapi data kapal");
+      alert("Lengkapi data tracker");
       return;
     }
 
@@ -124,8 +119,6 @@ export default function IsafePage() {
 
       setBoats(prev => [...prev, newBoat]);
     }
-
-    console.log("status:", status);
 
     resetForm();
     setShowForm(false);
@@ -161,15 +154,14 @@ export default function IsafePage() {
   };
 
   const stats = useMemo(() => {
+      return {
+        online: boats.filter(b => b.status === STATUS.ONLINE).length,
+        offline: boats.filter(b => b.status === STATUS.OFFLINE).length,
+        maintenance: boats.filter(b => b.status === STATUS.MAINTENANCE).length,
+        total: boats.length
+      };
+    }, [boats]);
 
-    return {
-      online: boats.filter(b => b.status === STATUS.ONLINE).length,
-      offline: boats.filter(b => b.status === STATUS.OFFLINE).length,
-      maintenance: boats.filter(b => b.status === STATUS.MAINTENANCE).length,
-      total: boats.length
-    };
-
-  }, [boats]);
 
   return (
     <AdminLayout>
@@ -182,7 +174,7 @@ export default function IsafePage() {
       <div className="flex-1 overflow-y-auto p-6">
       <h2>Boat Tracker CMS</h2>
 <br />
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div key={boats.length} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 
   <Card className="p-5 bg-green-50 border">
     <div className="flex justify-between items-start">
@@ -283,7 +275,7 @@ export default function IsafePage() {
         <form onSubmit={saveBoat} className="space-y-3">
 
           <div>
-            <Label>Nama Kapal</Label>
+            <Label>Nama Tracker</Label>
             <Input
               value={name}
               onChange={(e) => setName(e.target.value)}

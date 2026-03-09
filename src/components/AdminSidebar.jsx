@@ -10,7 +10,10 @@ import {
   Newspaper, 
   BookOpen,     
   CalendarDays,  
-  ShieldCheck
+  ShieldCheck,
+  Trophy,
+  Radio,
+  LocateFixed,
 } from 'lucide-react';
 import logoRajaAmpat from '@/assets/image/KKP-RajaAmpat.png';
 import motifSidebar from '@/assets/motif-sidebar.svg';
@@ -18,9 +21,9 @@ import { useLanguage } from '@/i18n/LanguageContext';
 
 const mainNavItems = [
   { to: '/', icon: LayoutDashboard, label: 'Ringkasan' },
-  { to: '/rams', icon: LayoutDashboard, label: 'RAMS' },
-  { to: '/i-safe', icon: LayoutDashboard, label: 'I-SAFE' },
-  { to: '/juara-kami', icon: LayoutDashboard, label: 'Juara Kami' },
+  { to: '/rams', icon: LocateFixed, label: 'RAMS' },
+  { to: '/i-safe', icon: Radio, label: 'I-SAFE' },
+  { to: '/juara-kami', icon: Trophy, label: 'Juara Kami' },
   { to: '/Berita', icon: Newspaper, label: 'Berita' },
   { to: '/Publikasi', icon: BookOpen, label: 'Publikasi' }, 
   { to: '/KalenderKegiatan', icon: CalendarDays, label: 'Kalender Kegiatan' } 
