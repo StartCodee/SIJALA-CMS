@@ -286,7 +286,6 @@ export default function KalenderKegiatanPage() {
       {/* MODAL INPUT */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm">
-          {/* Wrapper Modal dengan border soft (slate-100) */}
           <div className="bg-white w-full max-w-5xl rounded-2xl border border-slate-100 shadow-2xl flex flex-col max-h-[95vh] overflow-hidden font-plus text-left">
             <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
               <h3 className="text-lg font-bold text-slate-800 uppercase tracking-tight">
@@ -297,7 +296,24 @@ export default function KalenderKegiatanPage() {
               </button>
             </div>
             
-            <form onSubmit={handleSave} className="p-6 space-y-6 overflow-y-auto">
+            {/* INI BAGIAN YANG SAYA PERBAIKI: Inline style untuk scrollbar tipis */}
+            <form 
+              onSubmit={handleSave} 
+              className="p-6 space-y-6 overflow-y-auto"
+              style={{ 
+                scrollbarWidth: 'thin', 
+                scrollbarColor: '#cbd5e160 transparent' 
+              }}
+            >
+              <style dangerouslySetInnerHTML={{__html: `
+                form::-webkit-scrollbar { width: 5px; }
+                form::-webkit-scrollbar-track { background: transparent; }
+                form::-webkit-scrollbar-thumb { 
+                  background-color: rgba(203, 213, 225, 0.5); 
+                  border-radius: 10px; 
+                }
+              `}} />
+
               <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
                 <div className="md:col-span-4 flex flex-col gap-4">
                   <div>
