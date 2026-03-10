@@ -4,7 +4,6 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import * as XLSX from "xlsx";
-import { scalePoint } from "framer-motion";
 
 
 
@@ -83,69 +82,113 @@ export default function EvikaPage() {
         showDateFilter={false}
       />
       <div className="flex-1 overflow-y-auto p-6">
-      <h2>EVIKA CMS</h2>
-<br />
-  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 
-        <Card className="mb-6">
-        <CardHeader>
-            <CardTitle>Upload Excel Penilaian</CardTitle>
-        </CardHeader>
+<h2>EVIKA CMS</h2>
+    <br />
 
-        <CardContent>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 
-            <Input
-            type="file"
-            accept=".xlsx,.xls"
-            onChange={handleExcelUpload}
-            />
+    <Card>
+    <CardHeader>
+    <CardTitle>Upload Excel Penilaian</CardTitle>
+    </CardHeader>
 
-        </CardContent>
-        </Card>
+    <CardContent>
+    <Input
+    type="file"
+    accept=".xlsx,.xls"
+    onChange={handleExcelUpload}
+    />
+    </CardContent>
+    </Card>
 
-        {scoreResult && (
-        <Card className="mb-6">
+    {scoreResult && (
+    <Card>
+    <CardHeader>
+    <CardTitle>Hasil Penilaian</CardTitle>
+    </CardHeader>
+
+    <CardContent>
+    <p>Total Nilai : <b>{scoreResult.total}</b></p>
+    <p>Kategori : <b>{scoreResult.grade}</b></p>
+    </CardContent>
+    </Card>
+    )}
+
+    </div>
+
+     {excelData.length > 0 && (
+            <Card className="w-full card-ocean overflow-hidden">
+
             <CardHeader>
-            <CardTitle>Hasil Penilaian</CardTitle>
+            <CardTitle className="text-lg">Tabel Penilaian EVIKA</CardTitle>
             </CardHeader>
 
             <CardContent>
 
-            <p>Total Nilai : <b>{scoreResult.total}</b></p>
-            <p>Kategori : <b>{scoreResult.grade}</b></p>
+            <div className="overflow-x-auto">
 
-            </CardContent>
-        </Card>
-        )}
+            <table className="data-table w-full">
 
-        {excelData.length > 0 && (
-            <table className="data-table">
             <thead>
-                <tr>
-                {excelData.length > 0 &&
-                Object.keys(excelData[0]).map((key) => (
-                <th key={key}>{key}</th>
-                ))}
-                </tr>
+            <tr>
+            <th>Kriteria</th>
+            <th>No</th>
+            <th>Indikator</th>
+            <th>Keterangan</th>
+            <th>Penanggung Jawab</th>
+            <th>Bobot</th>
+            </tr>
             </thead>
 
             <tbody>
-                {excelData.map((row, i) => (
-                <tr key={i}>
-                    {Object.values(row).map((val, j) => (
-                    <td key={j}>{val}</td>
-                    ))}
-                </tr>
-                ))}
+
+            {excelData.map((row, i) => (
+            <tr key={i} className="hover:bg-slate-50 transition-colors">
+
+            <td>{row.Kriteria}</td>
+
+            <td>
+            <span className="font-medium">
+            {row.No}
+            </span>
+            </td>
+
+            <td className="max-w-[200px]">
+            {row.Indikator}
+            </td>
+
+            <td className="max-w-[300px]">
+            {row.Keterangan}
+            </td>
+
+            <td>
+            <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase border border-blue-100 bg-blue-50 text-blue-700">
+            {row["Penanggung jawab"]}
+            </span>
+            </td>
+
+            <td>
+            <span className="px-2 py-0.5 rounded text-[9px] font-black uppercase border border-green-100 bg-green-50 text-green-700">
+            {row.Bobot}
+            </span>
+            </td>
+
+            </tr>
+            ))}
+
             </tbody>
+
             </table>
+
+            </div>
+            </CardContent>
+            </Card>
             )}
 
-</div>
-
+            </div>
       
 
-    </div>
         </AdminLayout>
     
   );
