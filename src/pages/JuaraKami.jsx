@@ -153,7 +153,7 @@ export default function JuaraKamiPage() {
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-widest">
                 <th className="px-5 py-3">Konten</th>
-                <th className="px-5 py-3">Penilaian</th>
+                <th className="px-5 py-3">Rating</th>
                 <th className="px-5 py-3">Status</th>
                 <th className="px-5 py-3 text-center">Aksi</th>
               </tr>
@@ -287,7 +287,7 @@ export default function JuaraKamiPage() {
                 </div>
                 <div className="space-y-1.5">
                 <label className="text-[9px] font-bold text-slate-400 uppercase ml-1 tracking-wider">
-                  Penilaian
+                  Rating
                 </label>
 
                 <div className="relative h-11">
