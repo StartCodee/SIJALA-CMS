@@ -14,6 +14,7 @@ import {
   Trophy,
   Radio,
   LocateFixed,
+  BookOpenText
 } from 'lucide-react';
 import logoRajaAmpat from '@/assets/image/KKP-RajaAmpat.png';
 import motifSidebar from '@/assets/motif-sidebar.svg';
@@ -24,6 +25,7 @@ const mainNavItems = [
   { to: '/rams', icon: LocateFixed, label: 'RAMS' },
   { to: '/i-safe', icon: Radio, label: 'I-SAFE' },
   { to: '/juara-kami', icon: Trophy, label: 'Juara Kami' },
+  { to: '/evika', icon: BookOpenText, label: 'EVIKA' },
   { to: '/Berita', icon: Newspaper, label: 'Berita' },
   { to: '/Publikasi', icon: BookOpen, label: 'Publikasi' }, 
   { to: '/KalenderKegiatan', icon: CalendarDays, label: 'Kalender Kegiatan' } 
