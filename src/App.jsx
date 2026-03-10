@@ -11,6 +11,7 @@ import NotFound from "./pages/NotFound";
 import RamsPage from "./pages/Rams";
 import IsafePage from "./pages/IsafePage"; 
 import JuaraKamiPage from "./pages/JuaraKami"; 
+import EvikaPage from "./pages/EvikaPage"; 
 import { LanguageProvider } from "./i18n/LanguageContext";
 import { LanguageRuntimeTranslator } from "./i18n/LanguageRuntimeTranslator";
 import 'leaflet/dist/leaflet.css';
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/rams" element={<RamsPage />} />
             <Route path="/i-safe" element={<IsafePage />} />
             <Route path="/juara-kami" element={<JuaraKamiPage />} />
+            <Route path="/evika" element={<EvikaPage />} />
             {/* Route Catch-all (Wildcard) harus di paling bawah */}
             <Route path="*" element={<NotFound />} />
           </Routes>
