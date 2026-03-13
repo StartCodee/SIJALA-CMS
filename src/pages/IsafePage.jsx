@@ -379,7 +379,7 @@ function MapLegend({
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 
-export default function IsafePage() {
+export default function SispandalwasPage() {
   const [boats, setBoats] = React.useState(INITIAL_BOATS);
 
   // Form state
@@ -523,7 +523,7 @@ export default function IsafePage() {
   return (
     <AdminLayout>
       <AdminHeader
-        title="ISafe Monitoring"
+        title="Sispandalwas Monitoring"
         subtitle="Live Vessel Tracking — Raja Ampat"
         showSearch={false}
         showDateFilter={false}

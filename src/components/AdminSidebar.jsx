@@ -23,7 +23,7 @@ import { useLanguage } from '@/i18n/LanguageContext';
 const mainNavItems = [
   { to: '/', icon: LayoutDashboard, label: 'Ringkasan' },
   { to: '/rams', icon: LocateFixed, label: 'RAMS' },
-  { to: '/i-safe', icon: Radio, label: 'I-SAFE' },
+  { to: '/sispandalwas', icon: Radio, label: 'SISPANDALWAS' },
   { to: '/juara-kami', icon: Trophy, label: 'Juara Kami' },
   { to: '/evika', icon: BookOpenText, label: 'EVIKA' },
   { to: '/Berita', icon: Newspaper, label: 'Berita' },

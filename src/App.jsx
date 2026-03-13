@@ -33,7 +33,7 @@ const App = () => (
             <Route path="/Publikasi" element={<PublikasiPage />} />
             <Route path="/KalenderKegiatan" element={<KalenderKegiatanPage />} />
             <Route path="/rams" element={<RamsPage />} />
-            <Route path="/i-safe" element={<IsafePage />} />
+            <Route path="/sispandalwas" element={<IsafePage />} />
             <Route path="/juara-kami" element={<JuaraKamiPage />} />
             <Route path="/evika" element={<EvikaPage />} />
             {/* Route Catch-all (Wildcard) harus di paling bawah */}
