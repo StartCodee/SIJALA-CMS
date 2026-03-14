@@ -1,30 +1,13 @@
-﻿import { AdminLayout } from "@/components/AdminLayout";
-import { AdminHeader } from "@/components/AdminHeader";
-import {
-  MapContainer,
-  TileLayer,
-  Marker,
-  Polyline,
-  Popup,
-  GeoJSON,
-  useMap,
-} from "react-leaflet";
-import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
+﻿import { useCallback, useEffect, useMemo, useState } from "react";
+import { MapContainer, TileLayer, GeoJSON, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
+import { Layers, Loader2, Wifi, WifiOff, Wrench, Radio, Clock, RefreshCw, AlertTriangle, MapPin, X } from "lucide-react";
+
+import { AdminLayout } from "@/components/AdminLayout";
+import { AdminHeader } from "@/components/AdminHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import dayjs from "dayjs";
-import {
-  Plus,
-  Layers,
-  ChevronDown,
-  ChevronUp,
-  Loader2,
-  X,
-  AlertTriangle,
-} from "lucide-react";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -32,346 +15,205 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  loadGeoJsonFromPublic,
+  normalizeZoneName,
+  pointFromFeature,
+} from "@/lib/geojsonUtils";
+import { TRACKER_LIST, SYSTEM_INFO, getKpiStats } from "@/data/sispandalwas/trackerData";
+import { cn } from "@/lib/utils";
 
-import geoJsonUrl from "@/data/GeoJson.geojson?url";
-
-// â”€â”€â”€ Constants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-const STATUS = { ONLINE: "online", OFFLINE: "offline", MAINTENANCE: "maintenance" };
-
-const BOAT_TYPES = {
-  BAGAN:      "Bagan Tradisional",
-  JOLOR:      "Jolor",
-  PENAMPUNG:  "Kapal Penampung",
-  KETINTING:  "Ketinting",
-  LAIN:       "Lain-lain",
-  LIVEABOARD: "Liveaboard",
-  SPEED:      "Speed Boat",
+const ZONE_STYLE = {
+  Inti: { color: "#b8b8b8", fillColor: "#EA3323", fillOpacity: 0.82, weight: 0.6 },
+  "Pemanfaatan Terbatas": { color: "#9ba39a", fillColor: "#AFFCA1", fillOpacity: 0.82, weight: 0.6 },
+  Lainnya: { color: "#9d9d9d", fillColor: "#828282", fillOpacity: 0.8, weight: 0.6 },
 };
 
-const TYPE_COLORS = {
-  [BOAT_TYPES.BAGAN]:      "#ef4444",
-  [BOAT_TYPES.JOLOR]:      "#f97316",
-  [BOAT_TYPES.PENAMPUNG]:  "#eab308",
-  [BOAT_TYPES.KETINTING]:  "#22c55e",
-  [BOAT_TYPES.LAIN]:       "#94a3b8",
-  [BOAT_TYPES.LIVEABOARD]: "#3b82f6",
-  [BOAT_TYPES.SPEED]:      "#8b5cf6",
+const ZONE_ORDER = ["Inti", "Pemanfaatan Terbatas", "Lainnya"];
+const CLUSTER_ORDER = ["Cluster 1", "Cluster 2", "Cluster 3", "Cluster 4"];
+const CLUSTER_DASH = {
+  "Cluster 1": "12 6",
+  "Cluster 2": "8 6",
+  "Cluster 3": "4 6",
+  "Cluster 4": "16 4 4 4",
 };
 
-const KAWASAN_LIST = [
-  "Area 1 - Perairan Kepulauan Ayau-Asia",
-  "Area 2 - Perairan Teluk Mayalibit",
-  "Area 3 - Perairan Selat Dampier",
-  "Area 4 - Perairan Kepulauan Misool",
-  "Area 5 - Perairan Kepulauan Kofiau-Boo",
-  "Area 6 - Perairan Kepulauan Fam",
-  "Area 7- Perairan Kepulauan Misool Utara",
-];
+const divingIcon = L.divIcon({
+  className: "",
+  html: '<div style="width:13px;height:13px;border-radius:999px;background:#2563eb;border:2px solid #dbeafe;box-shadow:0 2px 8px rgba(37,99,235,.4)"></div>',
+  iconSize: [13, 13],
+  iconAnchor: [6, 6],
+});
 
-const ZONASI_LIST = ["Zona Inti", "Zona Pemanfaatan Terbatas", "Zona Sasi", "Zona Lainnya"];
+const snorkelingIcon = L.divIcon({
+  className: "",
+  html: '<div style="width:13px;height:13px;border-radius:4px;background:#0ea5a4;border:2px solid #ccfbf1;box-shadow:0 2px 8px rgba(14,165,164,.35);transform:rotate(45deg)"></div>',
+  iconSize: [13, 13],
+  iconAnchor: [6, 6],
+});
 
-const ZONASI_STYLE = {
-  "Zona Inti":                 { color: "#ef4444", fillColor: "#ef4444", fillOpacity: 0.15, weight: 1.5 },
-  "Zona Pemanfaatan Terbatas": { color: "#f59e0b", fillColor: "#f59e0b", fillOpacity: 0.15, weight: 1.5 },
-  "Zona Sasi":                 { color: "#eab308", fillColor: "#eab308", fillOpacity: 0.12, weight: 1.5 },
-  "Zona Lainnya":              { color: "#94a3b8", fillColor: "#94a3b8", fillOpacity: 0.10, weight: 1 },
-};
+const divingSnorkelingIcon = L.divIcon({
+  className: "",
+  html: '<div style="width:13px;height:13px;border-radius:999px;background:linear-gradient(135deg,#2563eb 50%, #0ea5a4 50%);border:2px solid #dbeafe;box-shadow:0 2px 8px rgba(37,99,235,.35)"></div>',
+  iconSize: [13, 13],
+  iconAnchor: [6, 6],
+});
 
-// â”€â”€â”€ Dummy Boat Data â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-// Each boat has: current position (lat/lng), destination (destLat/destLng),
-// origin (originLat/originLng - used when reversing direction).
-// Offline boats do not move.
-
-const INITIAL_BOATS = [
-  {
-    id: 1001, name: "KM Harapan Jaya",
-    type: BOAT_TYPES.PENAMPUNG,
-    lat: -0.574, lng: 130.618,
-    destLat: -0.648, destLng: 130.738, originLat: -0.574, originLng: 130.618,
-    status: STATUS.ONLINE,  device: "AIS-001", battery: "85%", violation: false, patroli: true,
-    color: TYPE_COLORS[BOAT_TYPES.PENAMPUNG], trail: [[-0.574, 130.618]],
-  },
-  {
-    id: 1002, name: "Bagan Merah 01",
-    type: BOAT_TYPES.BAGAN,
-    lat: -0.520, lng: 130.749,
-    destLat: -0.468, destLng: 130.842, originLat: -0.520, originLng: 130.749,
-    status: STATUS.ONLINE, device: "VHF-012", battery: "62%", violation: false, patroli: false,
-    color: TYPE_COLORS[BOAT_TYPES.BAGAN], trail: [[-0.520, 130.749]],
-  },
-  {
-    id: 1003, name: "Ketinting Waisai",
-    type: BOAT_TYPES.KETINTING,
-    lat: -0.352, lng: 130.935,
-    destLat: -0.285, destLng: 130.882, originLat: -0.352, originLng: 130.935,
-    status: STATUS.ONLINE, device: "GPS-034", battery: "91%", violation: false, patroli: false,
-    color: TYPE_COLORS[BOAT_TYPES.KETINTING], trail: [[-0.352, 130.935]],
-  },
-  {
-    id: 1004, name: "Jolor Kofiau 03",
-    type: BOAT_TYPES.JOLOR,
-    lat: -1.153, lng: 129.843,
-    destLat: -1.246, destLng: 129.775, originLat: -1.153, originLng: 129.843,
-    status: STATUS.ONLINE, device: "VHF-056", battery: "44%", violation: true,  patroli: false,
-    color: TYPE_COLORS[BOAT_TYPES.JOLOR], trail: [[-1.153, 129.843]],
-  },
-  {
-    id: 1005, name: "Liveaboard Raja IV",
-    type: BOAT_TYPES.LIVEABOARD,
-    lat: -0.682, lng: 130.282,
-    destLat: -0.608, destLng: 130.462, originLat: -0.682, originLng: 130.282,
-    status: STATUS.ONLINE, device: "AIS-078", battery: "100%", violation: false, patroli: true,
-    color: TYPE_COLORS[BOAT_TYPES.LIVEABOARD], trail: [[-0.682, 130.282]],
-  },
-  {
-    id: 1006, name: "Ketinting Misool 02",
-    type: BOAT_TYPES.KETINTING,
-    lat: -1.980, lng: 130.050,
-    destLat: -2.044, destLng: 129.968, originLat: -1.980, originLng: 130.050,
-    status: STATUS.ONLINE, device: "GPS-091", battery: "78%", violation: false, patroli: false,
-    color: TYPE_COLORS[BOAT_TYPES.KETINTING], trail: [[-1.980, 130.050]],
-  },
-  {
-    id: 1007, name: "Speed Patrol 01",
-    type: BOAT_TYPES.SPEED,
-    lat: -0.610, lng: 130.520,
-    destLat: -0.552, destLng: 130.626, originLat: -0.610, originLng: 130.520,
-    status: STATUS.ONLINE, device: "AIS-022", battery: "96%", violation: false, patroli: true,
-    color: TYPE_COLORS[BOAT_TYPES.SPEED], trail: [[-0.610, 130.520]],
-  },
-  {
-    id: 1008, name: "Bagan Ayau 07",
-    type: BOAT_TYPES.BAGAN,
-    lat: 0.362, lng: 131.052,
-    destLat: 0.308, destLng: 130.964, originLat: 0.362, originLng: 131.052,
-    status: STATUS.MAINTENANCE, device: "VHF-114", battery: "23%", violation: false, patroli: false,
-    color: TYPE_COLORS[BOAT_TYPES.BAGAN], trail: [[0.362, 131.052]],
-  },
-  {
-    id: 1009, name: "Jolor Fam 08",
-    type: BOAT_TYPES.JOLOR,
-    lat: -0.720, lng: 130.195,
-    destLat: -0.794, destLng: 130.328, originLat: -0.720, originLng: 130.195,
-    status: STATUS.ONLINE, device: "GPS-145", battery: "57%", violation: false, patroli: false,
-    color: TYPE_COLORS[BOAT_TYPES.JOLOR], trail: [[-0.720, 130.195]],
-  },
-  {
-    id: 1010, name: "Lain-lain Misool",
-    type: BOAT_TYPES.LAIN,
-    lat: -1.752, lng: 130.399,
-    destLat: -1.815, destLng: 130.324, originLat: -1.752, originLng: 130.399,
-    status: STATUS.OFFLINE, device: "AIS-167", battery: "5%", violation: true,  patroli: false,
-    color: TYPE_COLORS[BOAT_TYPES.LAIN], trail: [[-1.752, 130.399]],
-  },
-];
-
-const TEMUAN_TERKINI = [
-  { id: 1, name: "KM Harapan Jaya",  area: "Perairan Teluk Kabul, Selat Dampier",  time: "08:42", violation: false },
-  { id: 2, name: "Jolor Kofiau 03",  area: "Zona Inti, Kepulauan Kofiau-Boo",      time: "07:15", violation: true  },
-  { id: 3, name: "Bagan Merah 01",   area: "Perairan Selat Dampier",               time: "06:33", violation: false },
-  { id: 4, name: "Lain-lain Misool", area: "Zona Inti, Kepulauan Misool Utara",    time: "05:50", violation: true  },
-];
-
-// â”€â”€â”€ Icon Factories â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-function createBoatIcon(boat, isSelected) {
-  const bg = isSelected ? "#fff" : boat.violation ? "#ef4444" : "#1a3c6e";
-  const border = isSelected ? `3px solid ${boat.violation ? "#ef4444" : "#1a3c6e"}` : "2px solid rgba(255,255,255,0.9)";
-  const size = isSelected ? 20 : 13;
-  const shadow = isSelected
-    ? "0 0 0 3px rgba(26,60,110,0.25), 0 3px 10px rgba(0,0,0,0.4)"
-    : boat.violation
-    ? "0 0 0 2px rgba(239,68,68,0.3), 0 2px 6px rgba(0,0,0,0.3)"
-    : "0 2px 6px rgba(0,0,0,0.35)";
-  return L.divIcon({
-    className: "",
-    html: `<div style="width:${size}px;height:${size}px;background:${bg};border-radius:50%;border:${border};box-shadow:${shadow};cursor:pointer;"></div>`,
-    iconSize: [size, size],
-    iconAnchor: [size / 2, size / 2],
-    popupAnchor: [0, -(size / 2 + 4)],
-  });
+function getActivityType(activity) {
+  const value = String(activity || "").toLowerCase();
+  const hasDive = value.includes("div");
+  const hasSnorkel = value.includes("snork");
+  if (hasDive && hasSnorkel) return "both";
+  if (hasSnorkel) return "snorkeling";
+  return "diving";
 }
 
-function createDestIcon(color) {
-  return L.divIcon({
-    className: "",
-    html: `<div style="width:9px;height:9px;background:${color};border:2px solid white;transform:rotate(45deg);box-shadow:0 1px 4px rgba(0,0,0,0.4);opacity:0.75;"></div>`,
-    iconSize: [13, 13],
-    iconAnchor: [6, 6],
-    popupAnchor: [0, -8],
-  });
+function iconByActivityType(type) {
+  if (type === "snorkeling") return snorkelingIcon;
+  if (type === "both") return divingSnorkelingIcon;
+  return divingIcon;
 }
 
-// â”€â”€â”€ MapController â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-function MapController({ targetBoat, onMapReady }) {
-  const map = useMap();
-  useEffect(() => { onMapReady(map); }, [map, onMapReady]);
-  useEffect(() => {
-    if (targetBoat) map.flyTo([targetBoat.lat, targetBoat.lng], 13, { duration: 1.4 });
-  }, [targetBoat]); // eslint-disable-line
-  return null;
+function formatLuas(luas) {
+  const num = Number(luas);
+  if (!Number.isFinite(num) || num <= 0) return "-";
+  return `${num.toLocaleString("id-ID", { maximumFractionDigits: 2 })} Ha`;
 }
 
-// â”€â”€â”€ KawasanGeoJSONLayer â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
-function KawasanGeoJSONLayer({ geoData, kawasanVisibility, zonasiVisibility }) {
-  const filtered = useMemo(() => {
-    if (!geoData) return null;
-    const features = geoData.features.filter(
-      (f) =>
-        f.properties?.Zonasi &&
-        kawasanVisibility[f.properties.Kawasan] !== false &&
-        zonasiVisibility[f.properties.Zonasi] !== false
-    );
-    return { type: "FeatureCollection", features };
-  }, [geoData, kawasanVisibility, zonasiVisibility]);
-
-  const layerKey = useMemo(
-    () => (filtered ? filtered.features.length + JSON.stringify(kawasanVisibility) + JSON.stringify(zonasiVisibility) : "empty"),
-    [filtered, kawasanVisibility, zonasiVisibility]
-  );
-
-  const styleFeature = useCallback(
-    (f) => ZONASI_STYLE[f.properties.Zonasi] || { color: "#94a3b8", fillColor: "#94a3b8", fillOpacity: 0.1, weight: 1 },
-    []
-  );
-
-  const onEachFeature = useCallback((feature, layer) => {
-    const { Kawasan, Zonasi, Luas_Ha } = feature.properties;
-    layer.bindPopup(
-      `<div style="font-size:12px;line-height:1.8">
-        <b>${Kawasan}</b><br/>
-        <span style="color:#6b7280">Zonasi:</span> ${Zonasi}<br/>
-        <span style="color:#6b7280">Luas:</span> ${Luas_Ha ? Number(Luas_Ha).toLocaleString("id-ID", { maximumFractionDigits: 2 }) + " Ha" : "N/A"}
-      </div>`
-    );
-    layer.on("mouseover", () => layer.setStyle({ fillOpacity: 0.38, weight: 2.5 }));
-    layer.on("mouseout", () => layer.resetStyle());
-  }, []);
-
-  if (!filtered || filtered.features.length === 0) return null;
-  return <GeoJSON key={layerKey} data={filtered} style={styleFeature} onEachFeature={onEachFeature} />;
+function escapeHtml(input) {
+  return String(input ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
-// ─── MapLegend Panel ──────────────────────────────────────────────────────────
+function buildZonePopupHtml(zone, rows) {
+  const items = rows
+    .map((row) => {
+      const aturan1 = escapeHtml(row.aturan1 || "-");
+      const aturan2 = escapeHtml(row.aturan2 || "-");
+      const aturan3 = escapeHtml(row.aturan3 || "-");
 
-function MapLegend({
-  kawasanVisibility, setKawasanVisibility,
-  zonasiVisibility,  setZonasiVisibility,
-  showBoatMarkers,   setShowBoatMarkers,
+      return `<div style="border-top:1px solid #e2e8f0;padding-top:8px;margin-top:8px">
+        <div style="font-weight:700;color:#0f172a;margin-bottom:4px">${escapeHtml(row.area)}</div>
+        <div style="display:inline-block;background:#dcfce7;color:#166534;border-radius:999px;padding:2px 10px;font-size:11px;margin-bottom:6px">Zona ${escapeHtml(zone)}</div>
+        <div style="color:#64748b;margin-bottom:2px">Luas: <b style="color:#334155">${escapeHtml(row.luas)}</b></div>
+        <div style="color:#475569"><span style="display:inline-block;min-width:50px;color:#64748b">Aturan 1</span> ${aturan1}</div>
+        <div style="color:#475569"><span style="display:inline-block;min-width:50px;color:#64748b">Aturan 2</span> ${aturan2}</div>
+        <div style="color:#475569"><span style="display:inline-block;min-width:50px;color:#64748b">Aturan 3</span> ${aturan3}</div>
+      </div>`;
+    })
+    .join("");
+
+  return `<div style="font-size:12px;line-height:1.6;min-width:300px;max-width:360px;max-height:360px;overflow:auto;padding-right:4px">
+    ${items || `<div style=\"color:#64748b\">Data area tidak tersedia untuk zona ${escapeHtml(zone)}</div>`}
+  </div>`;
+}
+
+function LayersPanel({
+  layerVisibility,
+  setLayerVisibility,
+  zoneVisibility,
+  setZoneVisibility,
+  clusterVisibility,
+  setClusterVisibility,
   onClose,
 }) {
-  const [sec, setSec] = React.useState({ kawasan: true, zonasi: false, boats: true });
-  const toggle = (s) => setSec((p) => ({ ...p, [s]: !p[s] }));
-
-  const SH = ({ id, label }) => (
-    <button
-      className="w-full flex items-center justify-between px-3 py-2 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
-      onClick={() => toggle(id)}
-    >
-      <span>{label}</span>
-      {sec[id] ? <ChevronUp size={11} /> : <ChevronDown size={11} />}
-    </button>
-  );
-
   return (
     <div
-      className="absolute z-[1000] bg-white rounded-xl shadow-xl border border-gray-200 overflow-hidden"
-      style={{ bottom: 100, left: 16, width: 218 }}
-      onMouseDown={(e) => e.stopPropagation()}
-      onClick={(e) => e.stopPropagation()}
-      onWheel={(e) => e.stopPropagation()}
+      className="absolute left-4 bottom-16 z-[1000] w-64 rounded-xl border border-slate-200 bg-white shadow-xl"
+      onMouseDown={(event) => event.stopPropagation()}
+      onClick={(event) => event.stopPropagation()}
     >
-      <div className="flex items-center justify-between px-3 py-2.5 border-b border-gray-100 bg-[#1a3c6e]">
-        <span className="text-xs font-bold text-white flex items-center gap-1.5">
-          <Layers size={12} /> Legend &amp; Layers
-        </span>
-        <button onClick={onClose} className="text-blue-200 hover:text-white"><X size={13} /></button>
+      <div className="flex items-center justify-between rounded-t-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white">
+        <div className="flex items-center gap-2">
+          <Layers className="h-3.5 w-3.5" /> Legend & Layers
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-md p-1 text-white/80 hover:bg-white/10 hover:text-white"
+          aria-label="Close legend panel"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
       </div>
 
-      {/* Kawasan */}
-      <div className="border-b border-gray-100">
-        <SH id="kawasan" label="Layer Kawasan" />
-        {sec.kawasan && (
-          <div className="px-3 pb-2.5 space-y-1 max-h-36 overflow-y-auto">
-            <label className="flex items-center gap-2 cursor-pointer text-xs font-medium text-gray-600">
+      <div className="space-y-3 px-3 py-3 text-xs">
+        <div>
+          <p className="mb-1 font-semibold text-slate-600">Layer Data</p>
+          <label className="flex cursor-pointer items-center gap-2 py-0.5 text-slate-600">
+            <input
+              type="checkbox"
+              className="accent-slate-900"
+              checked={layerVisibility.zones}
+              onChange={(event) => setLayerVisibility((prev) => ({ ...prev, zones: event.target.checked }))}
+            />
+            Zones
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 py-0.5 text-slate-600">
+            <input
+              type="checkbox"
+              className="accent-slate-900"
+              checked={layerVisibility.cluster}
+              onChange={(event) => setLayerVisibility((prev) => ({ ...prev, cluster: event.target.checked }))}
+            />
+            Cluster SISPANDALWAS
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 py-0.5 text-slate-600">
+            <input
+              type="checkbox"
+              className="accent-slate-900"
+              checked={layerVisibility.divers}
+              onChange={(event) => setLayerVisibility((prev) => ({ ...prev, divers: event.target.checked }))}
+            />
+            Diver Points
+          </label>
+        </div>
+
+        <div>
+          <p className="mb-1 font-semibold text-slate-600">Filter Zone</p>
+          {ZONE_ORDER.map((zone) => (
+            <label key={zone} className="flex cursor-pointer items-center gap-2 py-0.5 text-slate-600">
               <input
                 type="checkbox"
-                className="accent-[#1a3c6e]"
-                checked={KAWASAN_LIST.every((k) => kawasanVisibility[k] !== false)}
-                onChange={(e) =>
-                  setKawasanVisibility(Object.fromEntries(KAWASAN_LIST.map((k) => [k, e.target.checked])))
-                }
+                className="accent-slate-900"
+                checked={zoneVisibility[zone] !== false}
+                onChange={() => setZoneVisibility((prev) => ({ ...prev, [zone]: prev[zone] === false }))}
               />
-              Semua Kawasan
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-sm"
+                style={{ background: ZONE_STYLE[zone].fillColor, border: `1px solid ${ZONE_STYLE[zone].color}` }}
+              />
+              {zone}
             </label>
-            {KAWASAN_LIST.map((name) => (
-              <label key={name} className="flex items-center gap-2 cursor-pointer text-xs text-gray-500 hover:text-gray-700">
-                <input
-                  type="checkbox"
-                  className="accent-[#1a3c6e]"
-                  checked={kawasanVisibility[name] !== false}
-                  onChange={() => setKawasanVisibility((p) => ({ ...p, [name]: !p[name] }))}
-                />
-                {name.replace(/Area d+[-–s]*/i, '').trim() || name}
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
+          ))}
+        </div>
 
-      {/* Zonasi */}
-      <div className="border-b border-gray-100">
-        <SH id="zonasi" label="Filter Zonasi" />
-        {sec.zonasi && (
-          <div className="px-3 pb-2.5 space-y-1">
-            {ZONASI_LIST.map((name) => {
-              const s = ZONASI_STYLE[name] || {};
-              return (
-                <label key={name} className="flex items-center gap-2 cursor-pointer text-xs text-gray-500">
-                  <input
-                    type="checkbox"
-                    className="accent-[#1a3c6e]"
-                    checked={zonasiVisibility[name] !== false}
-                    onChange={() => setZonasiVisibility((p) => ({ ...p, [name]: !p[name] }))}
-                  />
-                  <span className="w-3 h-3 rounded-sm flex-shrink-0 inline-block" style={{ background: s.fillColor, border: `1.5px solid ${s.color}` }} />
-                  {name}
-                </label>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Boats */}
-      <div className="border-b border-gray-100">
-        <SH id="boats" label="Layer Kapal" />
-        {sec.boats && (
-          <div className="px-3 pb-2.5 space-y-1.5 text-xs text-gray-500">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" className="accent-[#1a3c6e]" checked={showBoatMarkers} onChange={(e) => setShowBoatMarkers(e.target.checked)} />
-              <span className="w-2.5 h-2.5 rounded-full bg-[#1a3c6e] flex-shrink-0 inline-block border border-white" />
-              Marker Kapal
+        <div>
+          <p className="mb-1 font-semibold text-slate-600">Filter Cluster</p>
+          {CLUSTER_ORDER.map((cluster) => (
+            <label key={cluster} className="flex cursor-pointer items-center gap-2 py-0.5 text-slate-600">
+              <input
+                type="checkbox"
+                className="accent-slate-900"
+                checked={clusterVisibility[cluster] !== false}
+                onChange={() => setClusterVisibility((prev) => ({ ...prev, [cluster]: prev[cluster] === false }))}
+              />
+              <span
+                className="inline-block h-0.5 w-4"
+                style={{
+                  borderTop: "2px dashed #ea580c",
+                  borderTopWidth: 2,
+                  borderTopStyle: "dashed",
+                }}
+              />
+              {cluster}
             </label>
-          </div>
-        )}
-      </div>
-
-      {/* Zonasi color key */}
-      <div className="px-3 py-2.5 bg-gray-50 space-y-1">
-        <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest mb-1">Keterangan Zonasi</p>
-        {ZONASI_LIST.map((name) => {
-          const s = ZONASI_STYLE[name] || {};
-          return (
-            <div key={name} className="flex items-center gap-1.5 text-[10px] text-gray-500">
-              <span className="w-2.5 h-2.5 rounded-sm flex-shrink-0 inline-block" style={{ background: s.fillColor, border: `1px solid ${s.color}` }} />
-              {name}
-            </div>
-          );
-        })}
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -381,450 +223,424 @@ function MapLegend({
 
 export default function SispandalwasPage() {
   const [boats, setBoats] = React.useState(INITIAL_BOATS);
+  const [zoneGeoJson, setZoneGeoJson] = useState(null);
+  const [clusterGeoJson, setClusterGeoJson] = useState(null);
+  const [diverGeoJson, setDiverGeoJson] = useState(null);
 
-  // Form state
-  const [name, setName] = React.useState('');
-  const [lat, setLat] = React.useState('');
-  const [lng, setLng] = React.useState('');
-  const [status, setStatus] = React.useState('');
-  const [device, setDevice] = React.useState('');
-  const [battery, setBattery] = React.useState('');
-  const [boatType, setBoatType] = React.useState('');
-  const [showForm, setShowForm] = React.useState(false);
-  const [editingId, setEditingId] = React.useState(null);
+  const [loading, setLoading] = useState(true);
+  const [layersOpen, setLayersOpen] = useState(false);
+  const [layerVisibility, setLayerVisibility] = useState({
+    zones: true,
+    cluster: true,
+    divers: true,
+  });
+  const [zoneVisibility, setZoneVisibility] = useState({
+    Inti: true,
+    "Pemanfaatan Terbatas": true,
+    Lainnya: true,
+  });
+  const [clusterVisibility, setClusterVisibility] = useState({
+    "Cluster 1": true,
+    "Cluster 2": true,
+    "Cluster 3": true,
+    "Cluster 4": true,
+  });
 
-  // Map UI state
-  const [selectedBoatId, setSelectedBoatId] = React.useState(null);
-  const [legendOpen, setLegendOpen] = React.useState(false);
-  const [kawasanVisibility, setKawasanVisibility] = React.useState(
-    Object.fromEntries(KAWASAN_LIST.map((k) => [k, true]))
-  );
-  const [zonasiVisibility, setZonasiVisibility] = React.useState(
-    Object.fromEntries(ZONASI_LIST.map((z) => [z, true]))
-  );
-  const [showBoatMarkers, setShowBoatMarkers] = React.useState(true);
+  const [autoRefresh, setAutoRefresh] = useState(true);
+  const [trackerSearch, setTrackerSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [messageFilter, setMessageFilter] = useState("all");
+  const [lastRefresh, setLastRefresh] = useState(new Date());
 
-  // GeoJSON load
-  const [geoData, setGeoData] = React.useState(null);
-  const [geoLoading, setGeoLoading] = React.useState(true);
+  const kpi = getKpiStats(TRACKER_LIST);
 
-  React.useEffect(() => {
-    fetch(geoJsonUrl)
-      .then((r) => r.json())
-      .then((data) => { setGeoData(data); setGeoLoading(false); })
-      .catch((err) => { console.error('GeoJSON:', err); setGeoLoading(false); });
-  }, []);
-
-  const rowRefs = React.useRef({});
-  const mapRef = React.useRef(null);
-  const formattedDate = React.useMemo(() => dayjs().format('YYYY-MM-DD HH:mm:ss'), []);
-
-  const targetBoat = React.useMemo(
-    () => (selectedBoatId ? boats.find((b) => b.id === selectedBoatId) ?? null : null),
-    [selectedBoatId, boats]
-  );
-
-  React.useEffect(() => {
-    if (selectedBoatId && rowRefs.current[selectedBoatId]) {
-      rowRefs.current[selectedBoatId].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }
-  }, [selectedBoatId]);
-
-  React.useEffect(() => {
-    if (editingId) {
-      const b = boats.find((b) => b.id === editingId);
-      if (b) { setLat(b.lat.toString()); setLng(b.lng.toString()); }
-    }
-  }, [boats, editingId]);
-
-  // Live tracking — boats move toward destination
-  React.useEffect(() => {
-    const id = setInterval(() => {
-      setBoats((prev) =>
-        prev.map((boat) => {
-          if (boat.status === STATUS.OFFLINE) return boat;
-          const dlat = boat.destLat - boat.lat;
-          const dlng = boat.destLng - boat.lng;
-          const dist = Math.sqrt(dlat * dlat + dlng * dlng);
-          if (dist < 0.003) {
-            return { ...boat, destLat: boat.originLat, destLng: boat.originLng, originLat: boat.destLat, originLng: boat.destLng };
-          }
-          const speed = boat.type === BOAT_TYPES.SPEED ? 0.0028 : 0.0014;
-          const factor = speed / dist;
-          const noise = 0.0001;
-          const nLat = parseFloat((boat.lat + dlat * factor + (Math.random() - 0.5) * noise).toFixed(6));
-          const nLng = parseFloat((boat.lng + dlng * factor + (Math.random() - 0.5) * noise).toFixed(6));
-          return { ...boat, lat: nLat, lng: nLng, trail: [...boat.trail.slice(-90), [nLat, nLng]] };
-        })
-      );
-    }, 1500);
+  // Auto-refresh every 5 mins
+  useEffect(() => {
+    if (!autoRefresh) return;
+    const id = setInterval(() => setLastRefresh(new Date()), 5 * 60 * 1000);
     return () => clearInterval(id);
+  }, [autoRefresh]);
+
+  const handleManualRefresh = () => setLastRefresh(new Date());
+
+  useEffect(() => {
+    let alive = true;
+
+    Promise.all([
+      loadGeoJsonFromPublic("/data/full-geo.geojson"),
+      loadGeoJsonFromPublic("/data/cluster_sispandalwas.geojson"),
+      loadGeoJsonFromPublic("/data/titik_penyelam.geojson"),
+    ])
+      .then(([zones, cluster, divers]) => {
+        if (!alive) return;
+        setZoneGeoJson(zones);
+        setClusterGeoJson(cluster);
+        setDiverGeoJson(divers);
+      })
+      .catch((error) => {
+        console.error("GeoJSON load failed", error);
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+
+    return () => {
+      alive = false;
+    };
   }, []);
 
-  const handleMapReady = React.useCallback((map) => { mapRef.current = map; }, []);
-  const handleMarkerClick = React.useCallback((boat) => {
-    setSelectedBoatId((prev) => (prev === boat.id ? null : boat.id));
-  }, []);
-  const handleTableRowClick = React.useCallback((boat) => {
-    setSelectedBoatId((prev) => (prev === boat.id ? null : boat.id));
-  }, []);
-
-  const resetForm = () => {
-    setName(''); setLat(''); setLng(''); setStatus(''); setDevice(''); setBattery(''); setBoatType('');
-  };
-
-  const saveBoat = (e) => {
-    e.preventDefault();
-    if (!name || !lat || !lng || !status || !device || !battery || !boatType) {
-      alert('Lengkapi semua data tracker');
-      return;
-    }
-    if (editingId) {
-      setBoats((prev) =>
-        prev.map((b) =>
-          b.id === editingId
-            ? { ...b, name, lat: parseFloat(lat), lng: parseFloat(lng), status, device, battery, type: boatType, color: TYPE_COLORS[boatType] || '#94a3b8' }
-            : b
-        )
-      );
-      setEditingId(null);
-    } else {
-      const nLat = parseFloat(lat), nLng = parseFloat(lng);
-      setBoats((prev) => [
-        ...prev,
-        {
-          id: Date.now(), name, type: boatType, status, device, battery,
-          lat: nLat, lng: nLng,
-          destLat: nLat + 0.08, destLng: nLng + 0.08,
-          originLat: nLat, originLng: nLng,
-          violation: false, patroli: false,
-          color: TYPE_COLORS[boatType] || '#94a3b8',
-          trail: [[nLat, nLng]],
+  const zoneFeatures = useMemo(() => {
+    const features = zoneGeoJson?.features || [];
+    return features
+      .map((feature) => ({
+        ...feature,
+        properties: {
+          ...feature.properties,
+          __zoneKey: normalizeZoneName(feature?.properties?.Zonasi),
         },
-      ]);
-    }
-    resetForm();
-    setShowForm(false);
+      }))
+      .filter((feature) => {
+        const zoneKey = feature.properties.__zoneKey;
+        if (zoneVisibility[zoneKey] === false) return false;
+        return true;
+      });
+  }, [zoneGeoJson, zoneVisibility]);
+
+  const filteredZones = useMemo(
+    () => ({ type: "FeatureCollection", features: zoneFeatures }),
+    [zoneFeatures]
+  );
+
+  const filteredClusters = useMemo(() => {
+    const features = (clusterGeoJson?.features || []).filter((feature) => {
+      const clusterName = feature?.properties?.KODE_ZONA || "Cluster 1";
+      return clusterVisibility[clusterName] !== false;
+    });
+    return { type: "FeatureCollection", features };
+  }, [clusterGeoJson, clusterVisibility]);
+
+  const diverRows = useMemo(() => {
+    return (diverGeoJson?.features || [])
+      .map((feature, index) => {
+        const [lat, lng] = pointFromFeature(feature) || [null, null];
+        if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+        return {
+          id: `diver-${index + 1}`,
+          lat,
+          lng,
+          activityType: getActivityType(feature?.properties?.Kegiatan_1),
+          properties: feature.properties || {},
+        };
+      })
+      .filter(Boolean)
+      .filter((row) => Number.isFinite(row.lat) && Number.isFinite(row.lng));
+  }, [diverGeoJson]);
+
+  const zoneAreaRows = useMemo(() => {
+    const grouped = { Inti: [], "Pemanfaatan Terbatas": [], Lainnya: [] };
+    const seen = new Set();
+
+    (zoneGeoJson?.features || []).forEach((feature) => {
+      const p = feature?.properties || {};
+      const zone = normalizeZoneName(p.Zonasi);
+      const area = p.Kawasan || "Area tidak tersedia";
+      const key = `${zone}::${area}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+
+      grouped[zone].push({
+        area,
+        luas: formatLuas(p.Luas_Ha),
+        aturan1: p.Aturan_1,
+        aturan2: p.Aturan_2,
+        aturan3: p.Aturan_3,
+      });
+    });
+
+    Object.values(grouped).forEach((rows) => {
+      rows.sort((a, b) => a.area.localeCompare(b.area, "id"));
+    });
+
+    return grouped;
+  }, [zoneGeoJson]);
+
+  const onEachZoneFeature = useCallback((feature, layer) => {
+    const props = feature.properties || {};
+    const zone = props.__zoneKey || normalizeZoneName(props.Zonasi);
+    const rows = zoneAreaRows[zone] || [];
+    layer.bindPopup(buildZonePopupHtml(zone, rows));
+
+    layer.on("mouseover", () => layer.setStyle({ fillOpacity: 0.96, weight: 0.8 }));
+    layer.on("mouseout", () => layer.setStyle(ZONE_STYLE[zone] || ZONE_STYLE.Lainnya));
+  }, [zoneAreaRows]);
+
+  const onEachClusterFeature = useCallback((feature, layer) => {
+    const props = feature.properties || {};
+    layer.bindPopup(
+      `<div style="font-size:12px;line-height:1.6;max-width:260px"><b>${props.KODE_ZONA || "Cluster"}</b><br/><span style="color:#64748b">Kawasan:</span> ${props.Kawasan || "-"}<br/><span style="color:#64748b">Luas:</span> ${props.Luas ? Number(props.Luas).toLocaleString("id-ID", { maximumFractionDigits: 2 }) + " m²" : "-"}<br/><div style="margin-top:4px;color:#334155">${props.ATURAN || "Aturan tidak tersedia"}</div></div>`
+    );
+  }, []);
+
+  const clusterStyle = useCallback((feature) => {
+    const clusterName = feature?.properties?.KODE_ZONA || "Cluster 1";
+    return {
+      color: "#ea580c",
+      fillOpacity: 0,
+      weight: 2,
+      dashArray: CLUSTER_DASH[clusterName] || "8 6",
+      opacity: 0.95,
+    };
+  }, []);
+
+  const filteredTrackers = useMemo(() => {
+    return TRACKER_LIST.filter((t) => {
+      const matchSearch = t.name.toLowerCase().includes(trackerSearch.toLowerCase()) ||
+        t.id.toLowerCase().includes(trackerSearch.toLowerCase());
+      const matchStatus = statusFilter === "all" || t.status === statusFilter;
+      const matchMessage = messageFilter === "all" || t.message === messageFilter;
+      return matchSearch && matchStatus && matchMessage;
+    });
+  }, [trackerSearch, statusFilter, messageFilter]);
+
+  const STATUS_DOT = {
+    Online: "bg-green-500",
+    Offline: "bg-red-500",
+    Maintenance: "bg-amber-500",
+  };
+  const STATUS_BADGE = {
+    Online:      "bg-green-50 border-green-200 text-green-700",
+    Offline:     "bg-red-50   border-red-200   text-red-700",
+    Maintenance: "bg-amber-50 border-amber-200 text-amber-700",
   };
 
-  const editBoat = (boat) => {
-    setName(boat.name); setLat(boat.lat); setLng(boat.lng);
-    setStatus(boat.status); setDevice(boat.device); setBattery(boat.battery); setBoatType(boat.type);
-    setEditingId(boat.id); setShowForm(true);
-  };
-
-  const deleteBoat = (id) => {
-    if (window.confirm('Hapus tracker ini?')) {
-      setBoats((prev) => prev.filter((b) => b.id !== id));
-      if (selectedBoatId === id) setSelectedBoatId(null);
-    }
-  };
+  const kpiCards = [
+    { label: "Devices Online",  value: kpi.online,      sub: "Total Tracker", icon: Wifi,    bg: "bg-green-50 border-green-100", iconColor: "text-green-500",  valueColor: "text-green-600" },
+    { label: "Devices Offline", value: kpi.offline,     sub: "Total Tracker", icon: WifiOff, bg: "bg-red-50   border-red-100",   iconColor: "text-red-500",    valueColor: "text-red-600"   },
+    { label: "Maintenance",     value: kpi.maintenance, sub: "Total Tracker", icon: Wrench,  bg: "bg-amber-50 border-amber-100", iconColor: "text-amber-500",  valueColor: "text-amber-600" },
+    { label: "Total Devices",   value: kpi.total,       sub: "Spot Trace",    icon: Radio,   bg: "bg-blue-50  border-blue-100",  iconColor: "text-blue-500",   valueColor: "text-blue-600"  },
+    {
+      label: "Update Terakhir",
+      value: lastRefresh.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }),
+      sub: "Sinkronisasi Data",
+      icon: Clock,
+      bg: "bg-slate-50 border-slate-100",
+      iconColor: "text-slate-500",
+      valueColor: "text-slate-700",
+    },
+  ];
 
   return (
     <AdminLayout>
       <AdminHeader
-        title="Sispandalwas Monitoring"
-        subtitle="Live Vessel Tracking — Raja Ampat"
+        title="Tracking Realtime"
+        subtitle="Monitoring posisi tracker secara real-time"
         showSearch={false}
         showDateFilter={false}
       />
 
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="flex-1 overflow-auto p-6 space-y-5">
+        {/* KPI Flash Cards */}
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+          {kpiCards.map((card) => (
+            <div key={card.label} className={cn("rounded-2xl border p-4 shadow-sm", card.bg)}>
+              <div className="flex items-start justify-between">
+                <p className="text-xs font-semibold text-gray-700">{card.label}</p>
+                <card.icon className={cn("w-4 h-4 flex-shrink-0", card.iconColor)} />
+              </div>
+              <p className={cn("text-2xl font-bold mt-2", card.valueColor)}>{card.value}</p>
+              <p className="text-[11px] text-gray-500 mt-0.5">{card.sub}</p>
+            </div>
+          ))}
+        </div>
 
-        {/* Map */}
-        <Card className="mb-5 overflow-hidden rounded-xl shadow-md">
-          <CardContent className="p-0">
-            <div className="relative" style={{ height: 620 }}>
-              <MapContainer
-                center={[-0.72, 130.42]}
-                zoom={8}
-                style={{ height: '100%', width: '100%' }}
-              >
-                <TileLayer
-                  attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                  url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        {/* Map + Tracker Panel */}
+        <div className="flex gap-4">
+          {/* Map Card */}
+          <Card className="flex-1 overflow-hidden min-w-0">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <MapPin className="w-4 h-4" /> Peta Tracking Realtime
+                </CardTitle>
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-1.5 text-xs text-gray-600 cursor-pointer select-none">
+                    Auto Refresh
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={autoRefresh}
+                      onClick={() => setAutoRefresh((p) => !p)}
+                      className={cn(
+                        "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
+                        autoRefresh ? "bg-blue-600" : "bg-gray-300"
+                      )}
+                    >
+                      <span className={cn(
+                        "inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform",
+                        autoRefresh ? "translate-x-4" : "translate-x-1"
+                      )} />
+                    </button>
+                  </label>
+                  <Button size="sm" variant="outline" className="h-7 gap-1.5 text-xs" onClick={handleManualRefresh}>
+                    <RefreshCw className="w-3 h-3" /> Refresh
+                  </Button>
+                </div>
+              </div>
+              {/* Filters */}
+              <div className="flex flex-wrap gap-2 mt-2">
+                <Input
+                  placeholder="Cari tracker..."
+                  value={trackerSearch}
+                  onChange={(e) => setTrackerSearch(e.target.value)}
+                  className="h-8 text-xs w-48"
                 />
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="h-8 text-xs w-36">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Status</SelectItem>
+                    <SelectItem value="Online">Online</SelectItem>
+                    <SelectItem value="Offline">Offline</SelectItem>
+                    <SelectItem value="Maintenance">Maintenance</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={messageFilter} onValueChange={setMessageFilter}>
+                  <SelectTrigger className="h-8 text-xs w-36">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Semua Pesan</SelectItem>
+                    {["POSITION","TRACKING","UNLIMITED-TRACK","STOP","NEWMOVEMENT","POWER-OFF"].map((m) => (
+                      <SelectItem key={m} value={m}>{m}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="relative" style={{ height: 520 }}>
+                <MapContainer center={[-0.72, 130.42]} zoom={8} style={{ height: "100%", width: "100%" }}>
+                  <TileLayer attribution="&copy; OpenStreetMap" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-                <KawasanGeoJSONLayer
-                  geoData={geoData}
-                  kawasanVisibility={kawasanVisibility}
-                  zonasiVisibility={zonasiVisibility}
-                />
+                  {layerVisibility.zones && zoneFeatures.length > 0 && (
+                    <GeoJSON
+                      key={`zones-${zoneFeatures.length}`}
+                      data={filteredZones}
+                      style={(feature) => ZONE_STYLE[feature?.properties?.__zoneKey] || ZONE_STYLE.Lainnya}
+                      onEachFeature={onEachZoneFeature}
+                    />
+                  )}
 
-                {/* Route + trail + destination — only shown for the selected boat */}
-                {selectedBoatId && boats
-                  .filter((boat) => boat.id === selectedBoatId)
-                  .map((boat) => (
-                    <React.Fragment key={`sel-${boat.id}`}>
-                      <Polyline
-                        positions={[[boat.lat, boat.lng], [boat.destLat, boat.destLng]]}
-                        pathOptions={{ color: boat.color, weight: 1.5, dashArray: '4 7', opacity: 0.65 }}
-                      />
-                      <Marker
-                        position={[boat.destLat, boat.destLng]}
-                        icon={createDestIcon(boat.color)}
-                      >
+                  {layerVisibility.cluster && filteredClusters?.features?.length > 0 && (
+                    <GeoJSON
+                      key={`cluster-${filteredClusters.features.length}`}
+                      data={filteredClusters}
+                      style={clusterStyle}
+                      onEachFeature={onEachClusterFeature}
+                    />
+                  )}
+
+                  {layerVisibility.divers &&
+                    diverRows.map((row) => (
+                      <Marker key={row.id} position={[row.lat, row.lng]} icon={iconByActivityType(row.activityType)}>
                         <Popup>
-                          <div style={{ fontSize: 12, lineHeight: 1.7 }}>
-                            <b>Tujuan — {boat.name}</b><br />
-                            {boat.destLat.toFixed(5)}, {boat.destLng.toFixed(5)}
+                          <div className="text-xs leading-6">
+                            <b>{row.properties.Nama || "Diver Point"}</b>
+                            <br />
+                            <span className="text-slate-500">Kegiatan:</span> {row.properties.Kegiatan_1 || "-"}
+                            <br />
+                            <span className="text-slate-500">Lokasi:</span> {row.properties.Lokasi_Kaw || "-"}
+                            <br />
+                            <span className="text-slate-500">Kedalaman:</span> {row.properties.Kedalaman_ || "-"}
                           </div>
                         </Popup>
                       </Marker>
-                      <Polyline
-                        positions={boat.trail}
-                        pathOptions={{ color: boat.color, weight: 2.5, opacity: 0.9 }}
-                      />
-                    </React.Fragment>
-                  ))}
+                    ))}
+                </MapContainer>
 
-                {/* Boat markers — always visible */}
-                {showBoatMarkers &&
-                  boats.map((boat) => (
-                    <Marker
-                      key={`m-${boat.id}-${boat.lat}-${boat.lng}-${selectedBoatId === boat.id}`}
-                      position={[boat.lat, boat.lng]}
-                      icon={createBoatIcon(boat, selectedBoatId === boat.id)}
-                      eventHandlers={{ click: () => handleMarkerClick(boat) }}
-                    >
-                      <Popup>
-                        <div style={{ fontSize: 12, lineHeight: 1.8 }}>
-                          <b>{boat.name}</b>
-                          {boat.violation && <span style={{ color: '#ef4444', marginLeft: 6 }}>⚠ Pelanggaran</span>}
-                          <br />
-                          <span style={{ color: '#6b7280' }}>Tipe:</span> {boat.type}<br />
-                          <span style={{ color: '#6b7280' }}>Posisi:</span> {boat.lat.toFixed(5)}, {boat.lng.toFixed(5)}<br />
-                          <span style={{ color: '#6b7280' }}>Tujuan:</span> {boat.destLat.toFixed(5)}, {boat.destLng.toFixed(5)}<br />
-                          <span style={{ color: '#6b7280' }}>Status:</span> {boat.status}<br />
-                          <span style={{ color: '#6b7280' }}>Baterai:</span> {boat.battery}
-                        </div>
-                      </Popup>
-                    </Marker>
-                  ))}
-
-                <MapController targetBoat={targetBoat} onMapReady={handleMapReady} />
-              </MapContainer>
-
-              {geoLoading && (
-                <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-white/90 rounded-full px-4 py-1.5 text-xs text-gray-500 flex items-center gap-1.5 shadow-md">
-                  <Loader2 className="w-3 h-3 animate-spin" /> Memuat kawasan…
-                </div>
-              )}
-
-              {selectedBoatId && (
-                <div className="absolute top-3 right-3 z-[1000] bg-white/90 rounded-lg px-3 py-1.5 text-xs text-gray-600 shadow-md border border-gray-200">
-                  Klik kapal lagi untuk menyembunyikan jalur
-                </div>
-              )}
-
-              <button
-                className="absolute z-[1000] bg-white shadow-md rounded-lg px-3 py-2 flex items-center gap-1.5 text-xs font-semibold text-gray-700 border border-gray-200 hover:bg-gray-50 transition-colors"
-                style={{ bottom: 44, left: 16 }}
-                onClick={() => setLegendOpen((p) => !p)}
-              >
-                <Layers size={13} />
-                Legend &amp; Layers
-              </button>
-
-              {legendOpen && (
-                <MapLegend
-                  kawasanVisibility={kawasanVisibility}
-                  setKawasanVisibility={setKawasanVisibility}
-                  zonasiVisibility={zonasiVisibility}
-                  setZonasiVisibility={setZonasiVisibility}
-                  showBoatMarkers={showBoatMarkers}
-                  setShowBoatMarkers={setShowBoatMarkers}
-                  onClose={() => setLegendOpen(false)}
-                />
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Table toolbar */}
-        <div className="mb-3 flex justify-end">
-          <Button className="btn-ocean gap-2" onClick={() => setShowForm(true)}>
-            <Plus className="w-4 h-4" /> Tambah Tracker
-          </Button>
-        </div>
-
-        {/* Tracker Table */}
-        <Card className="card-ocean overflow-hidden">
-          <CardHeader>
-            <CardTitle className="text-base flex items-center gap-2">
-              Daftar Tracker
-              {selectedBoatId && (
-                <span className="text-xs font-normal text-blue-500 ml-1">
-                  ● Klik kapal atau baris untuk melihat jalur
-                </span>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="overflow-x-auto">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Nama Kapal</th>
-                    <th>Jenis</th>
-                    <th>Posisi Saat Ini</th>
-                    <th>Titik Tujuan</th>
-                    <th>Status</th>
-                    <th>Device</th>
-                    <th>Baterai</th>
-                    <th>Update</th>
-                    <th>Aksi</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {boats.map((boat) => (
-                    <tr
-                      key={boat.id}
-                      ref={(el) => { rowRefs.current[boat.id] = el; }}
-                      onClick={() => handleTableRowClick(boat)}
-                      className={`cursor-pointer transition-colors ${
-                        selectedBoatId === boat.id
-                          ? 'bg-blue-50 border-l-4 border-l-[#1a3c6e]'
-                          : 'hover:bg-slate-50'
-                      }`}
-                    >
-                      <td>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className="w-2.5 h-2.5 rounded-full flex-shrink-0 border border-white shadow-sm"
-                            style={{ background: boat.color }}
-                          />
-                          <span className="font-medium text-sm">{boat.name}</span>
-                          {boat.violation && (
-                            <AlertTriangle size={12} className="text-red-500 flex-shrink-0" />
-                          )}
-                        </div>
-                      </td>
-                      <td>
-                        <span
-                          className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
-                          style={{ background: boat.color + '22', color: boat.color, border: `1px solid ${boat.color}44` }}
-                        >
-                          {boat.type}
-                        </span>
-                      </td>
-                      <td className="font-mono text-xs text-gray-500">
-                        {boat.lat.toFixed(4)}, {boat.lng.toFixed(4)}
-                      </td>
-                      <td className="font-mono text-xs text-gray-400">
-                        {boat.destLat.toFixed(4)}, {boat.destLng.toFixed(4)}
-                      </td>
-                      <td>
-                        <span
-                          className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                            boat.status === STATUS.ONLINE
-                              ? 'bg-green-50 text-green-700 border border-green-200'
-                              : boat.status === STATUS.OFFLINE
-                              ? 'bg-red-50 text-red-700 border border-red-200'
-                              : 'bg-yellow-50 text-yellow-700 border border-yellow-200'
-                          }`}
-                        >
-                          {boat.status}
-                        </span>
-                      </td>
-                      <td className="text-xs text-gray-500">{boat.device}</td>
-                      <td>
-                        <span
-                          className={`text-xs font-semibold ${parseInt(boat.battery) < 30 ? 'text-red-500' : 'text-green-600'}`}
-                        >
-                          {boat.battery}
-                        </span>
-                      </td>
-                      <td className="text-xs text-gray-400 whitespace-nowrap">{formattedDate}</td>
-                      <td className="flex gap-1.5" onClick={(e) => e.stopPropagation()}>
-                        <Button className="btn-yellow" onClick={() => editBoat(boat)}>Edit</Button>
-                        <Button className="btn-red" onClick={() => deleteBoat(boat.id)}>Hapus</Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Add / Edit Modal */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[9999]">
-          <Card className="w-[440px] relative z-[10000]">
-            <CardHeader>
-              <CardTitle>{editingId ? 'Edit Tracker' : 'Tambah Tracker'}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={saveBoat} className="space-y-3">
-                <div>
-                  <Label>Nama Kapal</Label>
-                  <Input value={name} onChange={(e) => setName(e.target.value)} />
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>Latitude</Label>
-                    <Input value={lat} onChange={(e) => setLat(e.target.value)} />
+                {loading && (
+                  <div className="absolute left-1/2 top-3 z-[1000] flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-white/90 px-4 py-1.5 text-xs text-slate-600 shadow-md">
+                    <Loader2 className="h-3 w-3 animate-spin" /> Memuat GeoJSON...
                   </div>
-                  <div>
-                    <Label>Longitude</Label>
-                    <Input value={lng} onChange={(e) => setLng(e.target.value)} />
+                )}
+
+                <div className="absolute right-4 top-4 z-[1000] rounded-lg border border-slate-200 bg-white/95 p-3 text-xs shadow-lg backdrop-blur-sm">
+                  <p className="mb-2 font-semibold text-slate-700">Aktivitas Titik</p>
+                  <div className="space-y-1.5 text-slate-600">
+                    <p className="flex items-center gap-2">
+                      <span className="inline-block h-3 w-3 rounded-full border-2 border-blue-100 bg-blue-600" /> Diving
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <span className="inline-block h-3 w-3 rotate-45 rounded-[2px] border-2 border-teal-100 bg-teal-500" /> Snorkeling
+                    </p>
+                    <p className="flex items-center gap-2">
+                      <span className="inline-block h-3 w-3 rounded-full border-2 border-blue-100 bg-[linear-gradient(135deg,#2563eb_50%,#0ea5a4_50%)]" /> Diving + Snorkeling
+                    </p>
                   </div>
                 </div>
-                <div>
-                  <Label>Jenis Kapal</Label>
-                  <Select value={boatType} onValueChange={setBoatType}>
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="Pilih Jenis" />
-                    </SelectTrigger>
-                    <SelectContent className="z-[9999]">
-                      {Object.values(BOAT_TYPES).map((t) => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div>
-                  <Label>Status</Label>
-                  <Select value={status} onValueChange={setStatus}>
-                    <SelectTrigger className="bg-background">
-                      <SelectValue placeholder="Pilih Status" />
-                    </SelectTrigger>
-                    <SelectContent className="z-[9999]">
-                      <SelectItem value={STATUS.ONLINE}>Online</SelectItem>
-                      <SelectItem value={STATUS.OFFLINE}>Offline</SelectItem>
-                      <SelectItem value={STATUS.MAINTENANCE}>Maintenance</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <Label>Device ID</Label>
-                    <Input value={device} onChange={(e) => setDevice(e.target.value)} />
-                  </div>
-                  <div>
-                    <Label>Baterai</Label>
-                    <Input value={battery} placeholder="misal: 75%" onChange={(e) => setBattery(e.target.value)} />
-                  </div>
-                </div>
-                <div className="flex gap-2 pt-2">
-                  <Button type="submit" className="btn-ocean flex-1">
-                    {editingId ? 'Update' : 'Tambah'}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => { setShowForm(false); setEditingId(null); resetForm(); }}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </form>
+
+                <Button
+                  type="button"
+                  size="sm"
+                  className="absolute bottom-4 left-4 z-[1000] h-8 gap-1.5 bg-white text-slate-700 hover:bg-slate-100"
+                  onClick={() => setLayersOpen((prev) => !prev)}
+                >
+                  <Layers className="h-3.5 w-3.5" /> Legend & Layers
+                </Button>
+
+                {layersOpen && (
+                  <LayersPanel
+                    layerVisibility={layerVisibility}
+                    setLayerVisibility={setLayerVisibility}
+                    zoneVisibility={zoneVisibility}
+                    setZoneVisibility={setZoneVisibility}
+                    clusterVisibility={clusterVisibility}
+                    setClusterVisibility={setClusterVisibility}
+                    onClose={() => setLayersOpen(false)}
+                  />
+                )}
+              </div>
             </CardContent>
           </Card>
+
+          {/* Tracker List Panel */}
+          <div className="w-72 flex-shrink-0">
+            <Card className="h-full">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">
+                  List Trackers ({filteredTrackers.length}) Devices
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 overflow-y-auto max-h-[560px]">
+                {filteredTrackers.length === 0 ? (
+                  <p className="text-xs text-gray-400 text-center py-8">Tidak ada tracker ditemukan</p>
+                ) : (
+                  filteredTrackers.map((t) => (
+                    <div key={t.id} className="rounded-lg border border-gray-100 p-3 hover:bg-gray-50 transition-colors">
+                      <div className="flex items-start justify-between gap-1">
+                        <p className="text-sm font-semibold text-gray-800">{t.name}</p>
+                        <span className={cn(
+                          "text-[11px] font-semibold px-2 py-0.5 rounded-full border flex-shrink-0",
+                          STATUS_BADGE[t.status] ?? "bg-slate-50 border-slate-200 text-slate-700"
+                        )}>
+                          {t.status}
+                        </span>
+                      </div>
+                      <p className="text-[11px] text-amber-600 font-medium mt-1 flex items-center gap-1">
+                        <AlertTriangle className="w-3 h-3" />
+                        {t.locationDuration}
+                      </p>
+                      <p className="text-[11px] text-gray-500 mt-0.5">Pesan: {t.message}</p>
+                      <p className="text-[11px] text-gray-400">Update Terakhir: {t.lastUpdate}</p>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </div>
         </div>
-      )}
+      </div>
     </AdminLayout>
   );
 }
