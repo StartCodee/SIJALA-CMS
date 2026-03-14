@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { AdminHeader } from '@/components/AdminHeader';
 import { Editor } from '@tinymce/tinymce-react';
+import axios from "axios";
 import { 
   Search, Plus, Pencil, Trash2, X, 
   FileText, Upload, Tag, Download,
@@ -14,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { set } from 'date-fns';
 
 
 export default function PublikasiPage() {
@@ -21,32 +23,9 @@ export default function PublikasiPage() {
   const pdfInputRef = useRef(null);
 
   // --- 1. STATE DATA UTAMA ---
-  const [publikasiData, setPublikasiData] = useState([
-    { 
-      id: 1, 
-      title: "Laporan Tahunan Pengelolaan Pesisir 2023", 
-      author: "Humas KKP", 
-      category: "LAPORAN", 
-      status: "PUBLISH",
-      date: "2024-03-01",
-      subjudul: "Ringkasan capaian kinerja pengelolaan ruang laut selama periode tahun anggaran 2023.",
-      thumbnail: null,
-      content: "",
-      pdfFile: null
-    },
-    { 
-      id: 2, 
-      title: "Draft Regulasi Kawasan Konservasi 2024", 
-      author: "Admin Satker", 
-      category: "REGULASI", 
-      status: "DRAFT",
-      date: "2024-05-10",
-      subjudul: "Peraturan terbaru mengenai batasan wilayah konservasi laut.",
-      thumbnail: null,
-      content: "",
-      pdfFile: null
-    }
-  ]);
+  const BASE_URL = "http://localhost:5000";
+  const API_URL = BASE_URL + "/api/publikasi";
+  const [publikasiData, setPublikasiData] = useState([]);
 
   const [categories, setCategories] = useState(["LAPORAN", "JURNAL", "REGULASI", "BUKU"]);
   const [search, setSearch] = useState("");
@@ -55,8 +34,24 @@ export default function PublikasiPage() {
   const [isCatModalOpen, setIsCatModalOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [newCatName, setNewCatName] = useState("");
-    const [activeTab, setActiveTab] = useState("semua");
+  const [activeTab, setActiveTab] = useState("semua");
+  const [loading,setLoading] = useState(false);
+  const [thumbnailFile, setThumbnailFile] = useState(null);
   
+  useEffect(() => {
+    fetchPublikasi();
+  }, []);
+
+  const fetchPublikasi = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(API_URL);
+      setPublikasiData(res.data);
+      setLoading(false);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   // STATE PAGINATION
   const [currentPage, setCurrentPage] = useState(1);
@@ -104,14 +99,47 @@ export default function PublikasiPage() {
   const totalPages = Math.ceil(sortedAndFilteredData.length / itemsPerPage);
 
   // --- 4. HANDLERS ---
-  const handleSave = (e) => {
+  const handleSave = async (e) => {
     e.preventDefault();
-    if (isEditing) {
-      setPublikasiData(prev => prev.map(item => item.id === currentPub.id ? { ...currentPub } : item));
-    } else {
-      setPublikasiData(prev => [{ ...currentPub, id: Date.now() }, ...prev]);
+
+    const formData = new FormData();
+
+     formData.append("title", currentPub.title);
+    formData.append("author", currentPub.author);
+    formData.append("category", currentPub.category);
+    formData.append("status", currentPub.status);
+    formData.append("date", currentPub.date);
+    formData.append("subjudul", currentPub.subjudul);
+    formData.append("content", currentPub.content);
+
+    if (thumbnailFile) {
+      formData.append("thumbnail", thumbnailFile);
     }
+
+    if (currentPub.pdfFile) {
+    formData.append("pdf", currentPub.pdfFile);
+  }
+
+  try {
+
+    if (isEditing) {
+      await axios.patch(
+        `${API_URL}/${currentPub.id}`,
+        formData
+      );
+    } else {
+    await axios.post(
+        API_URL,
+        formData
+      );
+    }
+
+    fetchPublikasi();
     setIsModalOpen(false);
+
+  } catch (err) {
+    console.error(err);
+    }
   };
 
   const openModal = (pub = null) => {
@@ -130,12 +158,28 @@ export default function PublikasiPage() {
     setIsModalOpen(true);
   };
 
+  const handleDelete = async (id) => {
+
+  if (!confirm("Hapus publikasi ini?")) return;
+
+  try {
+
+    await axios.delete(`${API_URL}/${id}`);
+
+    fetchPublikasi();
+
+  } catch (err) {
+    console.error(err);
+  }
+
+};
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file && file.type === "application/pdf") {
       setCurrentPub({ 
         ...currentPub, 
-        pdfFile: { name: file.name, size: (file.size / 1024 / 1024).toFixed(1) + "MB" } 
+        pdfFile: file
       });
     }
   };
@@ -161,7 +205,7 @@ export default function PublikasiPage() {
                 <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
                   {item.thumbnail ? (
                     <img
-                      src={item.thumbnail}
+                      src={`${BASE_URL}${item.thumbnail}`}
                       className="w-full h-full object-cover rounded"
                     />
                   ) : (
@@ -359,18 +403,21 @@ export default function PublikasiPage() {
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2 ml-1">Thumbnail Preview</label>
                     <div className="relative aspect-video h-[165px] rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden group hover:border-[#234E8D] transition-all">
                         {currentPub.thumbnail ? (
-                          <img src={currentPub.thumbnail} className="w-full h-full object-cover" />
+                          <img src={`${BASE_URL}${currentPub.thumbnail}`} className="w-full h-full object-cover" />
                         ) : (
                           <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer p-4 text-center">
                               <Upload className="w-6 h-6 text-[#234E8D] mb-1"/>
                               <span className="text-[10px] font-bold text-slate-400 uppercase">Upload Image</span>
                               <input type="file" className="hidden" accept="image/*" onChange={(e) => {
                                 const file = e.target.files[0];
-                                if (file) {
-                                    const reader = new FileReader();
-                                    reader.onloadend = () => setCurrentPub({ ...currentPub, thumbnail: reader.result });
-                                    reader.readAsDataURL(file);
-                                }
+                               setThumbnailFile(file);
+
+                                const preview = URL.createObjectURL(file);
+
+                                setCurrentPub({
+                                  ...currentPub,
+                                  thumbnail: preview
+                                });
                               }} />
                           </label>
                         )}

@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { AdminHeader } from '@/components/AdminHeader';
 import { Editor } from '@tinymce/tinymce-react'; 
+import axios from 'axios';
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,19 +30,7 @@ export default function KalenderKegiatanPage() {
   };
 
   // --- 1. STATE DATA ---
-  const [events, setEvents] = useState([
-    {
-      id: 1,
-      title: "Survey Terumbu Karang Raja Ampat",
-      location: "Pulau Mansuar", 
-      date: getTodayString(), 
-      time: "08:00",
-      category: "RISET",
-      image: null,
-      summary: "Monitoring kesehatan karang di kawasan konservasi.",
-      description: "<p>Detail rincian narasi kegiatan di sini.</p>",
-    }
-  ]);
+  const [events, setEvents] = useState([]);
 
   const [categories, setCategories] = useState(["PROGRAM", "RISET", "EVENT", "INTERNAL"]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -58,11 +47,33 @@ export default function KalenderKegiatanPage() {
   return d;
 };
 
+  const BASE_URL = "http://localhost:5000";
+
+  const API_URL = BASE_URL + "/api/kegiatan";
+
   const [currentEvent, setCurrentEvent] = useState({ 
     id: '', title: '', location: '', category: 'PROGRAM',
     date: getTodayString(), time: '09:00',
     summary: '', description: '', image: null
   });
+
+  const [loading,setLoading] = useState(false);
+  const [thumbnailFile, setThumbnailFile] = useState(null);
+  
+  useEffect(() => {
+    fetchKegiatan();
+  }, []);
+
+  const fetchKegiatan = async () => {
+    try {
+      setLoading(true);
+      const res = await axios.get(API_URL);
+      setEvents(res.data);
+      setLoading(false);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
  const stats = useMemo(() => {
   const today = getToday();
@@ -130,14 +141,36 @@ export default function KalenderKegiatanPage() {
     }
   };
 
-  const handleSave = (e) => {
-    if(e) e.preventDefault();
-    if (isEditing) {
-      setEvents(prev => prev.map(item => item.id === currentEvent.id ? { ...currentEvent } : item));
-    } else {
-      setEvents(prev => [...prev, { ...currentEvent, id: Date.now() }]);
+  const handleSave = async (e) => {
+    e.preventDefault();
+    
+    const formData = new FormData();
+
+    Object.keys(currentEvent).forEach((key) => {
+      formData.append(key, currentEvent[key]);
+    });
+
+    if (thumbnailFile) {
+      formData.append("thumbnail", thumbnailFile);
     }
+
+  try {
+    if (isEditing) {
+      await axios.patch(
+              `${API_URL}/${currentEvent.id}`,
+              formData
+            );    
+          } else {
+    await axios.post(
+        API_URL,
+        formData
+      );
+    }
+    fetchKegiatan();
     setIsModalOpen(false);
+  } catch (err) {
+    console.error(err);
+  }
   };
 
   const openModal = (event = null) => {
@@ -154,6 +187,21 @@ export default function KalenderKegiatanPage() {
     }
     setIsModalOpen(true);
   };
+
+   const handleDelete = async (id) => {
+
+      if (!confirm("Hapus kegiatan ini?")) return;
+
+      try {
+
+        await axios.delete(`${API_URL}/${id}`);
+
+        fetchKegiatan();
+
+      } catch (err) {
+        console.error(err);
+      }
+    };
 
   const renderTable = (data) => (
   <Card className="card-ocean overflow-hidden">
@@ -183,7 +231,7 @@ export default function KalenderKegiatanPage() {
                   <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
                     {event.image ? (
                       <img
-                        src={event.image}
+                        src={`${BASE_URL}${event.image}`}
                         className="w-full h-full object-cover rounded"
                       />
                     ) : (
@@ -383,7 +431,7 @@ export default function KalenderKegiatanPage() {
                 <div className="relative flex-1 lg:max-w-[400px]">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <Input
-                               placeholder="Cari Berita..."
+                               placeholder="Cari Kalender Kegiatan..."
                                value={search}
                                onChange={(e) => setSearch(e.target.value)}
                                className="pl-9 bg-card"
@@ -477,12 +525,21 @@ export default function KalenderKegiatanPage() {
                     <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-2">Thumbnail Agenda</label>
                     <div className="relative aspect-video h-[165px] rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden group hover:border-[#234E8D] transition-all">
                         {currentEvent.image ? (
-                          <img src={currentEvent.image} className="w-full h-full object-cover" alt="preview" />
+                          <img src={`${BASE_URL}${currentEvent.image}`} className="w-full h-full object-cover" alt="preview" />
                         ) : (
                           <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer p-4 text-center">
                               <Upload className="w-6 h-6 text-[#234E8D] mb-1"/>
                               <span className="text-[10px] font-bold text-slate-400 uppercase">Upload Gambar</span>
-                              <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                              <input type="file" className="hidden" accept="image/*" onChange={(e) => {
+                                const file = e.target.files[0];
+                               setThumbnailFile(file);
+
+                                const preview = URL.createObjectURL(file);
+
+                                setCurrentEvent({
+                                  ...currentEvent,
+                                  image: preview
+                                });}} />
                           </label>
                         )}
                     </div>
