@@ -263,7 +263,7 @@ export default function BeritaPage() {
                 <CheckCircle className="w-5 h-5 text-status-approved" />
               </div>
               <div>
-                <p className="text-xl sm:text-2xl font-bold leading-tight break-words">
+                <p className="text-base sm:text-lg font-bold leading-tight break-words">
                   {stats.published}
                 </p>
                 <p className="text-xs text-muted-foreground break-words">
@@ -278,7 +278,7 @@ export default function BeritaPage() {
                 <Clock className="w-5 h-5 text-status-pending" />
               </div>
               <div>
-                <p className="text-xl sm:text-2xl font-bold leading-tight break-words">
+                <p className="text-base sm:text-lg font-bold leading-tight break-words">
                   {stats.draft}
                 </p>
                 <p className="text-xs text-muted-foreground break-words">

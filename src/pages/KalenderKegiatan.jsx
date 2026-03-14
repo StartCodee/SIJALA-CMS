@@ -2,11 +2,20 @@ import React, { useState, useMemo } from 'react';
 import { AdminLayout } from '@/components/AdminLayout';
 import { AdminHeader } from '@/components/AdminHeader';
 import { Editor } from '@tinymce/tinymce-react'; 
+
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+
+
 import { 
   Calendar as CalIcon, MapPin, Plus, 
   Search, ChevronLeft, ChevronRight, Pencil, 
   Trash2, X, Info, ChevronDown, Tag, Image as ImageIcon, Upload, FileText,
-  CheckCircle2, CalendarDays, CalendarCheck, CalendarRange, Bell
+  CheckCircle2, CalendarDays, CalendarCheck, CalendarRange, Bell,Clock, CheckCircle, BookOpen,
+  CalendarClock
 } from 'lucide-react';
 
 export default function KalenderKegiatanPage() {
@@ -41,6 +50,13 @@ export default function KalenderKegiatanPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [search, setSearch] = useState("");
   const [currentMonth, setCurrentMonth] = useState(new Date());
+  const [activeTab, setActiveTab] = useState("semua");  
+
+  const getToday = () => {
+  const d = new Date();
+  d.setHours(0,0,0,0);
+  return d;
+};
 
   const [currentEvent, setCurrentEvent] = useState({ 
     id: '', title: '', location: '', category: 'PROGRAM',
@@ -48,16 +64,16 @@ export default function KalenderKegiatanPage() {
     summary: '', description: '', image: null
   });
 
-  // --- 2. LOGIKA STATS ---
-  const stats = useMemo(() => {
-    const now = new Date();
-    now.setHours(0, 0, 0, 0);
-    return {
-      total: events.length,
-      onGoing: events.filter(e => new Date(e.date) >= now).length,
-      terlaksana: events.filter(e => new Date(e.date) < now).length
-    };
-  }, [events]);
+ const stats = useMemo(() => {
+  const today = getToday();
+
+  return {
+    total: events.length,
+    onGoing: events.filter(e => new Date(e.date) >= today).length,
+    terlaksana: events.filter(e => new Date(e.date) < today).length
+  };
+
+}, [events]);
 
   // --- 3. LOGIKA SORTING ---
   const sortedAndFilteredEvents = useMemo(() => {
@@ -65,6 +81,18 @@ export default function KalenderKegiatanPage() {
       .filter(e => e.title.toLowerCase().includes(search.toLowerCase()))
       .sort((a, b) => new Date(a.date) - new Date(b.date));
   }, [events, search]);
+
+   const today = getToday();
+
+  const eventsByStatus = {
+    semua: sortedAndFilteredEvents,
+    mendatang: sortedAndFilteredEvents.filter(
+      (e) => new Date(e.date) >= today
+    ),
+    terlaksana: sortedAndFilteredEvents.filter(
+      (e) => new Date(e.date) < today
+    ),
+  };
 
   // --- 4. LOGIKA ALERT ---
   const alerts = useMemo(() => {
@@ -127,6 +155,109 @@ export default function KalenderKegiatanPage() {
     setIsModalOpen(true);
   };
 
+  const renderTable = (data) => (
+  <Card className="card-ocean overflow-hidden">
+    <div className="overflow-x-auto">
+      <table className="data-table">
+
+        <thead>
+          <tr>
+            <th>Detail Agenda</th>
+            <th>Kategori</th>
+            <th>Waktu & Tempat</th>
+            <th>Status</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          {data.map((event) => {
+
+          const today = getToday();
+          const isDone = new Date(event.date) < today;
+            return (
+              <tr key={event.id}>
+
+                <td className="flex items-center gap-3">
+
+                  <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
+                    {event.image ? (
+                      <img
+                        src={event.image}
+                        className="w-full h-full object-cover rounded"
+                      />
+                    ) : (
+                      <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                    )}
+                  </div>
+
+                  <div>
+                    <p className="font-semibold text-sm">{event.title}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {event.summary}
+                    </p>
+                  </div>
+
+                </td>
+
+                <td>
+                  <Badge variant="outline" className="text-xs font-semibold">
+                    {event.category}
+                  </Badge>
+                </td>
+
+                <td>
+                   <p className="text-sm font-semibold text-slate-700 flex items-center gap-2"><CalIcon size={14} className="text-[#234E8D]"/> {new Date(event.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+                    <p className="text-xs text-muted-foreground text-slate-400 flex items-center gap-2 mt-1.5"><MapPin size={12}/> {event.location} • {event.time} WIT</p>
+                  
+                </td>
+
+                <td>
+                  {isDone ? (
+                    <Badge className="items-center gap-1 bg-status-approved-bg text-status-approved">
+                      <CheckCircle className="w-3 h-3" />
+                      Terlaksana
+                    </Badge>
+                  ) : (
+                    <Badge className="items-center gap-1 bg-status-pending-bg text-status-pending">
+                      <Clock className="w-3 h-3" />
+                      Mendatang
+                    </Badge>
+                  )}
+                </td>
+
+                <td className="flex gap-2">
+
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    onClick={() => openModal(event)}
+                  >
+                    <Pencil className="w-4 h-4" />
+                  </Button>
+
+                  <Button
+                    size="icon"
+                    variant="destructive"
+                    onClick={() =>
+                      setEvents(events.filter((e) => e.id !== event.id))
+                    }
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+
+                </td>
+
+              </tr>
+            );
+          })}
+        </tbody>
+
+      </table>
+    </div>
+  </Card>
+);
+
   return (
     <AdminLayout>
       <AdminHeader title="Kalender Kegiatan" subtitle="Jadwal operasional Satker Raja Ampat" showSearch={false} />
@@ -134,29 +265,55 @@ export default function KalenderKegiatanPage() {
       <div className="flex-1 overflow-auto p-6 space-y-6 bg-slate-50/30 font-plus text-left">
         
         {/* STATS CARDS */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center text-[#234E8D]"><CalendarRange size={24}/></div>
-            <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Total Agenda</p>
-              <p className="text-xl font-black text-slate-800 tracking-tight">{stats.total}</p>
-            </div>
-          </div>
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center text-amber-600"><CalendarDays size={24}/></div>
-            <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Mendatang</p>
-              <p className="text-xl font-black text-slate-800 tracking-tight">{stats.onGoing}</p>
-            </div>
-          </div>
-          <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-4">
-            <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-green-600"><CalendarCheck size={24}/></div>
-            <div>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Terlaksana</p>
-              <p className="text-xl font-black text-slate-800 tracking-tight">{stats.terlaksana}</p>
-            </div>
-          </div>
-        </div>
+         <div className="grid gap-4 mb-6 [grid-template-columns:repeat(auto-fit,minmax(170px,1fr))]">            
+                  <Card className="card-ocean p-4 min-w-0">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-xl bg-primary/10">
+                        <CalendarDays className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-base sm:text-lg font-bold leading-tight break-words">
+                       { stats.total}
+                        </p>
+                        <p className="text-xs text-muted-foreground break-words">
+                          Total Agenda
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                   <Card className="card-ocean p-4 min-w-0">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-xl bg-status-pending-bg">
+                        <CalendarClock className="w-5 h-5 text-status-pending" />
+                      </div>
+                      <div>
+                        <p className="text-base sm:text-lg font-bold leading-tight break-words">
+                          {stats.onGoing}
+                        </p>
+                        <p className="text-xs text-muted-foreground break-words">
+                          Mendatang
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                    <Card className="card-ocean p-4 min-w-0">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 rounded-xl bg-status-approved-bg">
+                        <CalendarCheck className="w-5 h-5 text-status-approved" />
+                      </div>
+                      <div>
+                        <p className="text-base sm:text-lg font-bold leading-tight break-words">
+                          {stats.terlaksana}
+                        </p>
+                        <p className="text-xs text-muted-foreground break-words">
+                          Terlaksana
+                        </p>
+                      </div>
+                    </div>
+                  </Card>
+                </div>
+
+        
 
         <div className="flex flex-col lg:flex-row gap-6">
           <div className="w-full lg:w-80 shrink-0 space-y-4">
@@ -225,60 +382,60 @@ export default function KalenderKegiatanPage() {
               <div className="flex flex-1 gap-3 items-center">
                 <div className="relative flex-1 lg:max-w-[400px]">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input 
-                    type="text" 
-                    placeholder="Cari Agenda..." 
-                    value={search} 
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2 text-sm rounded-md border border-slate-200 outline-none focus:border-[#234E8D] bg-white shadow-sm" 
-                  />
+                      <Input
+                               placeholder="Cari Berita..."
+                               value={search}
+                               onChange={(e) => setSearch(e.target.value)}
+                               className="pl-9 bg-card"
+                             />
                 </div>
               </div>
-              <button 
-                onClick={() => openModal()} 
-                className="bg-[#234E8D] text-white px-4 py-2 rounded-md font-semibold text-sm flex items-center justify-center gap-2 h-10 shadow-md hover:bg-[#1C3F72] transition-all"
-              >
-                <Plus className="w-4 h-4" /> Tambah Agenda
-              </button>
+               <Button className="btn-ocean gap-2" onClick={() => openModal()}>
+                    <Plus className="w-4 h-4"/>
+                      Tambah Agenda
+                </Button>
             </div>
 
-            <div className="bg-white rounded-[2rem] border border-slate-200 overflow-hidden shadow-sm">
-              <table className="w-full text-left border-collapse">
-                <thead>
-                  <tr className="bg-slate-50/50 border-b border-slate-200 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">
-                    <th className="px-8 py-5 text-left w-1/2">Detail Agenda</th>
-                    <th className="px-8 py-5 text-left">Waktu & Tempat</th>
-                    <th className="px-8 py-5 text-center">Aksi</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {sortedAndFilteredEvents.map((event) => (
-                    <tr key={event.id} className="hover:bg-slate-50/30 transition-colors group italic font-medium">
-                      <td className="px-8 py-5 flex gap-5 items-center">
-                        <div className="w-16 h-16 rounded-2xl bg-slate-100 overflow-hidden border border-slate-200 shrink-0">
-                          {event.image ? <img src={event.image} className="w-full h-full object-cover" /> : <ImageIcon className="w-full h-full p-5 text-slate-300"/>}
-                        </div>
-                        <div className="min-w-0 font-plus not-italic">
-                          <span className="text-xs font-black text-slate-400 uppercase tracking-widest mb-1 block">{event.category}</span>
-                          <span className="text-sm font-bold text-slate-800 line-clamp-1 block">{event.title}</span>
-                          <span className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">{event.summary}</span>
-                        </div>
-                      </td>
-                      <td className="px-8 py-5 font-plus not-italic">
-                        <div className="text-xs font-bold text-slate-700 flex items-center gap-2"><CalIcon size={14} className="text-[#234E8D]"/> {new Date(event.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-                        <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-1.5"><MapPin size={12}/> {event.location} • {event.time} WIT</div>
-                      </td>
-                      <td className="px-8 py-5 text-center">
-                        <div className="flex justify-center gap-2">
-                          <button onClick={() => openModal(event)} className="p-3 hover:bg-blue-50 text-blue-600 rounded-2xl transition-colors"><Pencil size={16}/></button>
-                          <button onClick={() => setEvents(events.filter(e => e.id !== event.id))} className="p-3 hover:bg-red-50 text-red-500 rounded-2xl transition-colors"><Trash2 size={16}/></button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Tabs
+  value={activeTab}
+  onValueChange={setActiveTab}
+  className="w-full"
+>
+
+  <TabsList className="grid w-full grid-cols-3 mb-4">
+
+    <TabsTrigger value="semua" className="gap-2">
+      <FileText className="w-4 h-4" />
+      Semua ({eventsByStatus.semua.length})
+    </TabsTrigger>
+
+    <TabsTrigger value="mendatang" className="gap-2">
+      <Clock className="w-4 h-4" />
+      Mendatang ({eventsByStatus.mendatang.length})
+    </TabsTrigger>
+
+    <TabsTrigger value="terlaksana" className="gap-2">
+      <CheckCircle className="w-4 h-4" />
+      Terlaksana ({eventsByStatus.terlaksana.length})
+    </TabsTrigger>
+
+  </TabsList>
+
+  <TabsContent value="semua">
+    {renderTable(eventsByStatus.semua)}
+  </TabsContent>
+
+  <TabsContent value="mendatang">
+    {renderTable(eventsByStatus.mendatang)}
+  </TabsContent>
+
+  <TabsContent value="terlaksana">
+    {renderTable(eventsByStatus.terlaksana)}
+  </TabsContent>
+
+</Tabs>
+
+           
           </div>
         </div>
       </div>
