@@ -23,7 +23,7 @@ import { useLanguage } from '@/i18n/LanguageContext';
 const mainNavItems = [
   { to: '/', icon: LayoutDashboard, label: 'Ringkasan' },
   { to: '/rams', icon: LocateFixed, label: 'RAMS' },
-  { to: '/i-safe', icon: Radio, label: 'I-SAFE' },
+  { to: '/i-safe', icon: Radio, label: 'SISPANDALWAS' },
   { to: '/juara-kami', icon: Trophy, label: 'Juara Kami' },
   { to: '/evika', icon: BookOpenText, label: 'EVIKA' },
   { to: '/Berita', icon: Newspaper, label: 'Berita' },
@@ -102,7 +102,7 @@ export function AdminSidebar({ className, mobileOpen = false, onMobileClose }) {
             </div>
             {!isCollapsed && (
               <div className="flex-1 min-w-0 animate-in fade-in duration-500">
-                <h1 className="text-base font-bold text-white truncate leading-tight">KKP Raja Ampat</h1>
+                <h1 className="text-base font-bold text-white truncate leading-tight">SISPANDALWAS</h1>
                 <p className="text-[11px] text-sidebar-foreground/70 truncate">Content Management System</p>
               </div>
             )}

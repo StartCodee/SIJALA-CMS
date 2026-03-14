@@ -1,409 +1,596 @@
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { MapContainer, Marker, Popup, TileLayer, GeoJSON, useMap } from "react-leaflet";
+import L from "leaflet";
+import { Layers, Loader2 } from "lucide-react";
+
 import { AdminLayout } from "@/components/AdminLayout";
 import { AdminHeader } from "@/components/AdminHeader";
-import { MapContainer, TileLayer, Marker, Popup, GeoJSON, useMap, useMapEvents } from "react-leaflet";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
+import {
+  loadGeoJsonFromPublic,
+  normalizeZoneName,
+  pointFromFeature,
+} from "@/lib/geojsonUtils";
 
-import { useState, useEffect, useMemo, useCallback } from "react";
-import L from "leaflet";
-import geoJsonUrl from "@/data/GeoJson.geojson?url";
+const PAGE_SIZE = 10;
 
-// ─── Kawasan / Zonasi constants ───────────────────────────────────────────────
-
-const KAWASAN_LIST = [
-  "Area 1 - Perairan Kepulauan Ayau-Asia",
-  "Area 2 - Perairan Teluk Mayalibit",
-  "Area 3 - Perairan Selat Dampier",
-  "Area 4 - Perairan Kepulauan Misool",
-  "Area 5 - Perairan Kepulauan Kofiau-Boo",
-  "Area 6 - Perairan Kepulauan Fam",
-  "Area 7- Perairan Kepulauan Misool Utara",
-];
-
-const ZONASI_LIST = ["Zona Inti", "Zona Pemanfaatan Terbatas", "Zona Sasi", "Zona Lainnya"];
-
-const ZONASI_STYLE = {
-  "Zona Inti":                 { color: "#ef4444", fillColor: "#ef4444", fillOpacity: 0.15, weight: 1.5 },
-  "Zona Pemanfaatan Terbatas": { color: "#f59e0b", fillColor: "#f59e0b", fillOpacity: 0.15, weight: 1.5 },
-  "Zona Sasi":                 { color: "#eab308", fillColor: "#eab308", fillOpacity: 0.12, weight: 1.5 },
-  "Zona Lainnya":              { color: "#94a3b8", fillColor: "#94a3b8", fillOpacity: 0.10, weight: 1 },
+const ZONE_STYLE = {
+  Inti: { color: "#b8b8b8", fillColor: "#EA3323", fillOpacity: 0.82, weight: 0.6 },
+  "Pemanfaatan Terbatas": { color: "#9ba39a", fillColor: "#AFFCA1", fillOpacity: 0.82, weight: 0.6 },
+  Lainnya: { color: "#9d9d9d", fillColor: "#828282", fillOpacity: 0.8, weight: 0.6 },
 };
 
-// ─── KawasanGeoJSONLayer ──────────────────────────────────────────────────────
+const ZONE_ORDER = ["Inti", "Pemanfaatan Terbatas", "Lainnya"];
 
-function KawasanGeoJSONLayer({ geoData, kawasanVisibility, zonasiVisibility, onMapClick }) {
-  const filtered = useMemo(() => {
-    if (!geoData) return null;
-    const features = geoData.features.filter(
-      (f) =>
-        f.properties?.Zonasi &&
-        kawasanVisibility[f.properties.Kawasan] !== false &&
-        zonasiVisibility[f.properties.Zonasi] !== false
-    );
-    return { type: "FeatureCollection", features };
-  }, [geoData, kawasanVisibility, zonasiVisibility]);
-
-  const layerKey = useMemo(
-    () => (filtered ? filtered.features.length + JSON.stringify(kawasanVisibility) + JSON.stringify(zonasiVisibility) : "empty"),
-    [filtered, kawasanVisibility, zonasiVisibility]
-  );
-
-  const styleFeature = useCallback(
-    (f) => ZONASI_STYLE[f.properties.Zonasi] || { color: "#94a3b8", fillColor: "#94a3b8", fillOpacity: 0.1, weight: 1 },
-    []
-  );
-
-  const onEachFeature = useCallback((feature, layer) => {
-    const { Kawasan, Zonasi, Luas_Ha } = feature.properties;
-    layer.bindPopup(
-      `<div style="font-size:12px;line-height:1.8">
-        <b>${Kawasan}</b><br/>
-        <span style="color:#6b7280">Zonasi:</span> ${Zonasi}<br/>
-        <span style="color:#6b7280">Luas:</span> ${Luas_Ha ? Number(Luas_Ha).toLocaleString("id-ID", { maximumFractionDigits: 2 }) + " Ha" : "N/A"}
-      </div>`
-    );
-    layer.on("mouseover", () => layer.setStyle({ fillOpacity: 0.38, weight: 2.5 }));
-    layer.on("mouseout", () => layer.resetStyle());
-    layer.on("click", (e) => { if (onMapClick) onMapClick(e.latlng); });
-  }, [onMapClick]);
-
-  if (!filtered || filtered.features.length === 0) return null;
-  return <GeoJSON key={layerKey} data={filtered} style={styleFeature} onEachFeature={onEachFeature} />;
-}
-
-
-const markerIcon = new L.Icon({
-  iconUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
+const mooringIcon = L.divIcon({
+  className: "",
+  html: '<div style="width:16px;height:16px;border-radius:999px;background:#0f766e;border:2px solid #ecfeff;box-shadow:0 2px 10px rgba(15,118,110,.45)"></div>',
+  iconSize: [16, 16],
+  iconAnchor: [8, 8],
 });
 
-function MapClickHandler({ setLat, setLng, setPreviewMarker, isEditing }) {
-  useMapEvents({
-    click(e) {
-      if (isEditing) return;
+function formatLuas(luas) {
+  const num = Number(luas);
+  if (!Number.isFinite(num) || num <= 0) return "-";
+  return `${num.toLocaleString("id-ID", { maximumFractionDigits: 2 })} Ha`;
+}
 
-      const lat = e.latlng.lat;
-      const lng = e.latlng.lng;
+function escapeHtml(input) {
+  return String(input ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
-      setLat(lat);
-      setLng(lng);
+function buildZonePopupHtml(zone, rows) {
+  const items = rows
+    .map((row) => {
+      const aturan1 = escapeHtml(row.aturan1 || "-");
+      const aturan2 = escapeHtml(row.aturan2 || "-");
+      const aturan3 = escapeHtml(row.aturan3 || "-");
 
-      setPreviewMarker({
-        lat,
-        lng
-      });
-    },
-  });
+      return `<div style="border-top:1px solid #e2e8f0;padding-top:8px;margin-top:8px">
+        <div style="font-weight:700;color:#0f172a;margin-bottom:4px">${escapeHtml(row.area)}</div>
+        <div style="display:inline-block;background:#dcfce7;color:#166534;border-radius:999px;padding:2px 10px;font-size:11px;margin-bottom:6px">Zona ${escapeHtml(zone)}</div>
+        <div style="color:#64748b;margin-bottom:2px">Luas: <b style="color:#334155">${escapeHtml(row.luas)}</b></div>
+        <div style="color:#475569"><span style="display:inline-block;min-width:50px;color:#64748b">Aturan 1</span> ${aturan1}</div>
+        <div style="color:#475569"><span style="display:inline-block;min-width:50px;color:#64748b">Aturan 2</span> ${aturan2}</div>
+        <div style="color:#475569"><span style="display:inline-block;min-width:50px;color:#64748b">Aturan 3</span> ${aturan3}</div>
+      </div>`;
+    })
+    .join("");
 
+  return `<div style="font-size:12px;line-height:1.6;min-width:300px;max-width:360px;max-height:360px;overflow:auto;padding-right:4px">
+    ${items || `<div style=\"color:#64748b\">Data area tidak tersedia untuk zona ${escapeHtml(zone)}</div>`}
+  </div>`;
+}
+
+function MapReadyBridge({ onReady }) {
+  const map = useMap();
+  useEffect(() => {
+    onReady(map);
+  }, [map, onReady]);
   return null;
 }
 
+function LayersPanel({ layerVisibility, setLayerVisibility, zoneVisibility, setZoneVisibility }) {
+  return (
+    <div
+      className="absolute left-4 bottom-16 z-[1000] w-64 rounded-xl border border-slate-200 bg-white shadow-xl"
+      onMouseDown={(event) => event.stopPropagation()}
+      onClick={(event) => event.stopPropagation()}
+    >
+      <div className="flex items-center gap-2 rounded-t-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white">
+        <Layers className="h-3.5 w-3.5" /> Legend & Layers
+      </div>
 
+      <div className="space-y-3 px-3 py-3 text-xs">
+        <div>
+          <p className="mb-1 font-semibold text-slate-600">Layer Data</p>
+          <label className="flex cursor-pointer items-center gap-2 py-0.5 text-slate-600">
+            <input
+              type="checkbox"
+              className="accent-slate-900"
+              checked={layerVisibility.zones}
+              onChange={(event) => setLayerVisibility((prev) => ({ ...prev, zones: event.target.checked }))}
+            />
+            Zones
+          </label>
+          <label className="flex cursor-pointer items-center gap-2 py-0.5 text-slate-600">
+            <input
+              type="checkbox"
+              className="accent-slate-900"
+              checked={layerVisibility.moorings}
+              onChange={(event) => setLayerVisibility((prev) => ({ ...prev, moorings: event.target.checked }))}
+            />
+            Mooring Points
+          </label>
+        </div>
+
+        <div>
+          <p className="mb-1 font-semibold text-slate-600">Filter Zone</p>
+          {ZONE_ORDER.map((zone) => (
+            <label key={zone} className="flex cursor-pointer items-center gap-2 py-0.5 text-slate-600">
+              <input
+                type="checkbox"
+                className="accent-slate-900"
+                checked={zoneVisibility[zone] !== false}
+                onChange={() => setZoneVisibility((prev) => ({ ...prev, [zone]: prev[zone] === false }))}
+              />
+              <span
+                className="inline-block h-2.5 w-2.5 rounded-sm"
+                style={{ background: ZONE_STYLE[zone].fillColor, border: `1px solid ${ZONE_STYLE[zone].color}` }}
+              />
+              {zone}
+            </label>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function formatMooringFeature(feature, index) {
+  const p = feature?.properties || {};
+  const [lat, lng] = pointFromFeature(feature) || [null, null];
+
+  return {
+    id: `mooring-${index + 1}`,
+    code: `MOOR-${String(index + 1).padStart(3, "0")}`,
+    name: p.Name || "-",
+    latitude: lat,
+    longitude: lng,
+    koordX: p.Koord_X || "-",
+    koordY: p.Koord_Y || "-",
+    status: "TERSEDIA",
+    keterangan: p.Keterangan || "-",
+  };
+}
 
 export default function RamsPage() {
-    
-    
-    const [lat, setLat] = useState("");
-    const [lng, setLng] = useState("");
-    const [markers, setMarkers] = useState([]);
-    const [previewMarker, setPreviewMarker] = useState(null);
-    const [name, setName] = useState("");
-    // const [editingIndex, setEditingIndex] = useState(null);
-    const [isEditing, setIsEditing] = useState(false);
-    const [editingId, setEditingId] = useState(null);
+  const [zoneGeoJson, setZoneGeoJson] = useState(null);
+  const [mooringRows, setMooringRows] = useState([]);
 
-    // GeoJSON
-    const [geoData, setGeoData] = useState(null);
-    const [geoLoading, setGeoLoading] = useState(true);
-    const [kawasanVisibility, setKawasanVisibility] = useState(
-      Object.fromEntries(KAWASAN_LIST.map((k) => [k, true]))
-    );
-    const [zonasiVisibility, setZonasiVisibility] = useState(
-      Object.fromEntries(ZONASI_LIST.map((z) => [z, true]))
-    );
+  const [loading, setLoading] = useState(true);
+  const [layersOpen, setLayersOpen] = useState(true);
+  const [layerVisibility, setLayerVisibility] = useState({
+    zones: true,
+    moorings: true,
+  });
+  const [zoneVisibility, setZoneVisibility] = useState({
+    Inti: true,
+    "Pemanfaatan Terbatas": true,
+    Lainnya: true,
+  });
+  const [selectedMooringId, setSelectedMooringId] = useState(null);
 
-    useEffect(() => {
-      fetch(geoJsonUrl)
-        .then((r) => r.json())
-        .then((data) => { setGeoData(data); setGeoLoading(false); })
-        .catch((err) => { console.error("GeoJSON:", err); setGeoLoading(false); });
-    }, []);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [editingRowId, setEditingRowId] = useState(null);
+  const [editingDraft, setEditingDraft] = useState(null);
 
+  const mapRef = useRef(null);
+  const markerRefs = useRef({});
 
-const addOrUpdateMarker = (e) => {
-  e.preventDefault();
+  useEffect(() => {
+    let alive = true;
 
-  if (!lat || !lng || !name) {
-    alert("Lengkapi nama dan koordinat");
-    return;
-  }
+    Promise.all([
+      loadGeoJsonFromPublic("/data/full-geo.geojson"),
+      loadGeoJsonFromPublic("/data/titik_mooring.geojson"),
+    ])
+      .then(([zones, moorings]) => {
+        if (!alive) return;
+        setZoneGeoJson(zones);
 
-  if (isEditing) {
-    setMarkers((prevMarkers) =>
-      prevMarkers.map((m) =>
-        m.id === editingId 
-          ? { ...m, name, lat: parseFloat(lat), lng: parseFloat(lng) }
-          : m
+        const initialRows = (moorings?.features || [])
+          .map((feature, index) => formatMooringFeature(feature, index))
+          .filter((row) => Number.isFinite(row.latitude) && Number.isFinite(row.longitude));
+        setMooringRows(initialRows);
+      })
+      .catch((error) => {
+        console.error("GeoJSON load failed", error);
+      })
+      .finally(() => {
+        if (alive) setLoading(false);
+      });
+
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const zoneFeatures = useMemo(() => {
+    const features = zoneGeoJson?.features || [];
+    return features
+      .map((feature) => {
+        const normalizedZone = normalizeZoneName(feature?.properties?.Zonasi);
+        return {
+          ...feature,
+          properties: {
+            ...feature.properties,
+            __zoneKey: normalizedZone,
+          },
+        };
+      })
+      .filter((feature) => {
+        const zoneKey = feature.properties.__zoneKey;
+        if (zoneVisibility[zoneKey] === false) return false;
+        return true;
+      });
+  }, [zoneGeoJson, zoneVisibility]);
+
+  const filteredZones = useMemo(
+    () => ({ type: "FeatureCollection", features: zoneFeatures }),
+    [zoneFeatures]
+  );
+
+  const zoneAreaRows = useMemo(() => {
+    const grouped = { Inti: [], "Pemanfaatan Terbatas": [], Lainnya: [] };
+    const seen = new Set();
+
+    (zoneGeoJson?.features || []).forEach((feature) => {
+      const p = feature?.properties || {};
+      const zone = normalizeZoneName(p.Zonasi);
+      const area = p.Kawasan || "Area tidak tersedia";
+      const key = `${zone}::${area}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+
+      grouped[zone].push({
+        area,
+        luas: formatLuas(p.Luas_Ha),
+        aturan1: p.Aturan_1,
+        aturan2: p.Aturan_2,
+        aturan3: p.Aturan_3,
+      });
+    });
+
+    Object.values(grouped).forEach((rows) => {
+      rows.sort((a, b) => a.area.localeCompare(b.area, "id"));
+    });
+
+    return grouped;
+  }, [zoneGeoJson]);
+
+  const totalPages = Math.max(1, Math.ceil(mooringRows.length / PAGE_SIZE));
+  const paginatedRows = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return mooringRows.slice(start, start + PAGE_SIZE);
+  }, [mooringRows, currentPage]);
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
+  const onEachZoneFeature = useCallback((feature, layer) => {
+    const props = feature.properties || {};
+    const zone = props.__zoneKey || normalizeZoneName(props.Zonasi);
+    const rows = zoneAreaRows[zone] || [];
+    layer.bindPopup(buildZonePopupHtml(zone, rows));
+
+    layer.on("mouseover", () => layer.setStyle({ fillOpacity: 0.96, weight: 0.8 }));
+    layer.on("mouseout", () => layer.setStyle(ZONE_STYLE[zone] || ZONE_STYLE.Lainnya));
+  }, [zoneAreaRows]);
+
+  const handleRowClick = useCallback(
+    (rowId) => {
+      if (editingRowId === rowId) return;
+      setSelectedMooringId(rowId);
+      const marker = markerRefs.current[rowId];
+      if (!marker || !mapRef.current) return;
+
+      const latLng = marker.getLatLng();
+      mapRef.current.flyTo([latLng.lat, latLng.lng], 11, { duration: 1.2 });
+      marker.openPopup();
+    },
+    [editingRowId]
+  );
+
+  const startRowEdit = useCallback((row, event) => {
+    event.stopPropagation();
+    setEditingRowId(row.id);
+    setEditingDraft({
+      name: row.name,
+      latitude: String(row.latitude),
+      longitude: String(row.longitude),
+      status: row.status,
+      koordX: row.koordX,
+      koordY: row.koordY,
+      keterangan: row.keterangan,
+    });
+  }, []);
+
+  const cancelRowEdit = useCallback((event) => {
+    event.stopPropagation();
+    setEditingRowId(null);
+    setEditingDraft(null);
+  }, []);
+
+  const saveRowEdit = useCallback((rowId, event) => {
+    event.stopPropagation();
+    if (!editingDraft) return;
+
+    const nextLat = Number(editingDraft.latitude);
+    const nextLng = Number(editingDraft.longitude);
+
+    if (!Number.isFinite(nextLat) || !Number.isFinite(nextLng)) {
+      alert("Latitude dan Longitude harus berupa angka yang valid.");
+      return;
+    }
+
+    setMooringRows((prev) =>
+      prev.map((row) =>
+        row.id === rowId
+          ? {
+              ...row,
+              name: editingDraft.name,
+              latitude: nextLat,
+              longitude: nextLng,
+              status: editingDraft.status,
+              koordX: editingDraft.koordX,
+              koordY: editingDraft.koordY,
+              keterangan: editingDraft.keterangan,
+            }
+          : row
       )
     );
-    
-    setIsEditing(false);
-    setEditingId(null);
-  } else {
-    const newMarker = {
-      id: Date.now(),
-      name,
-      lat: parseFloat(lat),
-      lng: parseFloat(lng),
-    };
-    setMarkers((prev) => [...prev, newMarker]);
-  }
 
-  setName("");
-  setLat("");
-  setLng("");
-  setPreviewMarker(null);
-};
+    setEditingRowId(null);
+    setEditingDraft(null);
+  }, [editingDraft]);
 
-const deleteMarker = (id) => {
-  if (window.confirm("Apakah Anda yakin ingin menghapus lokasi ini?")) {
-    setMarkers(markers.filter((m) => m.id !== id));
-    
-    // Jika sedang mengedit data yang dihapus, batalkan mode edit
-    if (isEditing && editingId === id) {
-      setIsEditing(false);
-      setEditingId(null);
-      setName("");
-      setLat("");
-      setLng("");
-    }
-  }
-};
-
-const editMarker = (marker) => {
-  setName(marker.name);
-  setLat(marker.lat.toString()); 
-  setLng(marker.lng.toString()); 
-  setEditingId(marker.id); 
-  setIsEditing(true);
-
-  setPreviewMarker(null);
-};
+  const updateDraft = useCallback((key, value) => {
+    setEditingDraft((prev) => ({ ...prev, [key]: value }));
+  }, []);
 
   return (
     <AdminLayout>
       <AdminHeader
-        title="RAMS"
-        subtitle="Content Management System"
+        title="SISPANDALWAS"
+        subtitle="Monitoring Zona dan Mooring"
         showSearch={false}
         showDateFilter={false}
       />
+
       <div className="flex-1 overflow-auto p-6">
-        <p className="text-muted-foreground">Halaman Input RAMS</p>
-         <div>
+        <Card className="overflow-hidden">
+          <CardContent className="p-0">
+            <div className="relative" style={{ height: 540 }}>
+              <MapContainer center={[-0.72, 130.42]} zoom={8} style={{ height: "100%", width: "100%" }}>
+                <TileLayer attribution="&copy; OpenStreetMap" url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-      <div className="relative" style={{ height: 500 }}>
-      <MapContainer
-        center={[-0.72, 130.42]}
-        zoom={8}
-        style={{ height: "100%", width: "100%" }}
-      >
+                <MapReadyBridge onReady={(map) => { mapRef.current = map; }} />
 
-        <TileLayer
-          attribution="&copy; OpenStreetMap"
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
+                {layerVisibility.zones && zoneFeatures.length > 0 && (
+                  <GeoJSON
+                    key={`zones-${zoneFeatures.length}`}
+                    data={filteredZones}
+                    style={(feature) => ZONE_STYLE[feature?.properties?.__zoneKey] || ZONE_STYLE.Lainnya}
+                    onEachFeature={onEachZoneFeature}
+                  />
+                )}
 
-        <KawasanGeoJSONLayer
-          geoData={geoData}
-          kawasanVisibility={kawasanVisibility}
-          zonasiVisibility={zonasiVisibility}
-          onMapClick={(latlng) => {
-            if (!isEditing) {
-              setLat(latlng.lat);
-              setLng(latlng.lng);
-              setPreviewMarker({ lat: latlng.lat, lng: latlng.lng });
-            }
-          }}
-        />
+                {layerVisibility.moorings &&
+                  mooringRows.map((row) => (
+                    <Marker
+                      key={row.id}
+                      position={[row.latitude, row.longitude]}
+                      icon={mooringIcon}
+                      ref={(ref) => {
+                        if (ref) markerRefs.current[row.id] = ref;
+                      }}
+                      eventHandlers={{
+                        click: () => setSelectedMooringId(row.id),
+                      }}
+                    >
+                      <Popup>
+                        <div className="min-w-[220px] text-xs leading-6">
+                          <div className="mb-1 text-[11px] font-semibold uppercase text-emerald-600">{row.code}</div>
+                          <div className="text-base font-semibold text-slate-800">{row.name}</div>
+                          <div><span className="text-slate-500">Koordinat:</span> {row.latitude.toFixed(4)}, {row.longitude.toFixed(4)}</div>
+                          <div><span className="text-slate-500">Koor X:</span> {row.koordX}</div>
+                          <div><span className="text-slate-500">Koor Y:</span> {row.koordY}</div>
+                          <div><span className="text-slate-500">Status:</span> {row.status}</div>
+                          <div><span className="text-slate-500">Keterangan:</span> {row.keterangan}</div>
+                        </div>
+                      </Popup>
+                    </Marker>
+                  ))}
+              </MapContainer>
 
-       <MapClickHandler
-        setLat={setLat}
-        setLng={setLng}
-        setPreviewMarker={setPreviewMarker}
-        isEditing={isEditing}
-        />
+              {loading && (
+                <div className="absolute left-1/2 top-3 z-[1000] flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-white/90 px-4 py-1.5 text-xs text-slate-600 shadow-md">
+                  <Loader2 className="h-3 w-3 animate-spin" /> Memuat GeoJSON...
+                </div>
+              )}
 
-        {markers.map((marker, index) => (
-        <Marker
-    key={marker.id} 
-    position={[marker.lat, marker.lng]}
-    icon={markerIcon}
-    eventHandlers={{
-      dragend: (e) => {
-        const { lat, lng } = e.target.getLatLng();
-        setMarkers(prev => prev.map(m => m.id === marker.id ? { ...m, lat, lng } : m));
-        
-        if (isEditing && editingId === marker.id) {
-          setLat(lat.toString());
-          setLng(lng.toString());
-        }
-      },
-      click: () => editMarker(marker) 
-    }}
-  >
-    <Popup><b>{marker.name}</b></Popup>
-  </Marker>
-        ))}
+              <Button
+                type="button"
+                size="sm"
+                className="absolute bottom-4 left-4 z-[1000] h-8 gap-1.5 bg-white text-slate-700 hover:bg-slate-100"
+                onClick={() => setLayersOpen((prev) => !prev)}
+              >
+                <Layers className="h-3.5 w-3.5" /> Legend & Layers
+              </Button>
 
-        {previewMarker && (
-        <Marker
-            position={[previewMarker.lat, previewMarker.lng]}
-            icon={markerIcon}
-        >
-            <Popup>Preview Lokasi</Popup>
-        </Marker>
-        )}
-
-      </MapContainer>
-
-      {geoLoading && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-[1000] bg-white/90 rounded-full px-4 py-1.5 text-xs text-gray-500 flex items-center gap-1.5 shadow-md">
-          <Loader2 className="w-3 h-3 animate-spin" /> Memuat kawasan…
-        </div>
-      )}
-      </div>
-
-      <br />
-
-    <div className="grid grid-cols-1 gap-6">
-          <Card className="xl:col-span-2 card-ocean">
-            <CardHeader>
-              <CardTitle className="text-lg">Input RAMS</CardTitle>
-            </CardHeader>
-            <CardContent>
-      <form key={isEditing ? `edit-${editingId}` : "add"} onSubmit={addOrUpdateMarker}>
-
-         <div className="space-y-2">
-             <Label>Nama Lokasi</Label>
-            <Input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Contoh: KMP Tuna Tomini"
-            required
-             />
-
-        </div>
-
-         <div className="space-y-2">
-             <Label>Latitude</Label>
-            <Input
-            value={lat}
-            onChange={(e) => setLat(e.target.value)}
-            placeholder="Contoh: -6.207889445262002"
-            required
-             />
-
-        </div>
-
-         <div className="space-y-2">
-             <Label>Longitude</Label>
-            <Input
-            value={lng}
-            onChange={(e) => setLng(e.target.value)}
-            placeholder="Contoh: 106.77466102883625"
-            required
-             />
-
-        </div>
-
-        <br />
-
-        <Button 
-        type="submit" 
-        className={`gap-2 ${isEditing ? "btn-yellow" : "btn-ocean"}`} 
-        >
-        {isEditing ? "Update Pin" : "Tambah Pin"}
-        </Button>
-
-        &nbsp;
-        {isEditing && (
-        <Button 
-        className="gap-2 btn-red"
-        type="button"
-        onClick={()=>{
-        setIsEditing(false)
-        setEditingId(null)
-        setName("")
-        setLat("")
-        setLng("")
-        setPreviewMarker(null)
-        }}
-        >
-        Cancel
-        </Button>
-        )}
-
-
-      </form>
-            </CardContent>
-            </Card>
+              {layersOpen && (
+                <LayersPanel
+                  layerVisibility={layerVisibility}
+                  setLayerVisibility={setLayerVisibility}
+                  zoneVisibility={zoneVisibility}
+                  setZoneVisibility={setZoneVisibility}
+                />
+              )}
             </div>
+          </CardContent>
+        </Card>
 
-      <br />
-
-      <Card className="card-ocean overflow-hidden">
+        <Card className="mt-6 overflow-hidden">
           <CardHeader>
-            <CardTitle className="text-lg">Daftar RAMS</CardTitle>
+            <CardTitle className="text-lg">Data Mooring Points</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
-              <table className="data-table">
+              <table className="data-table min-w-[1180px]">
                 <thead>
                   <tr>
-                    <th>Nama Lokasi</th>
-                    <th>Lat</th>
-                    <th>Long</th>
-                    <th>Action</th>
+                    <th>Kode</th>
+                    <th>Nama</th>
+                    <th>Koordinat</th>
+                    <th>Status</th>
+                    <th>Koor X</th>
+                    <th>Koor Y</th>
+                    <th>Keterangan</th>
+                    <th>Aksi</th>
                   </tr>
                 </thead>
                 <tbody>
-                {markers.map((m) => (
-                <tr key={m.id} className="hover:bg-slate-50 transition-colors">
-                    <td>{m.name}</td>
-                    <td>{m.lat}</td>
-                    <td>{m.lng}</td>
-                    <td className="flex gap-2"> 
-                    <Button 
-                        className="btn-yellow" 
-                        onClick={() => editMarker(m)}
-                    >
-                        Edit
-                    </Button>
-                    <Button 
-                        className="btn-red" 
-                        onClick={() => deleteMarker(m.id)}
-                    >
-                        Hapus
-                    </Button>
-                    </td>
-                </tr>
-                ))}
+                  {paginatedRows.map((row) => {
+                    const isEditing = editingRowId === row.id;
+                    return (
+                      <tr
+                        key={row.id}
+                        onClick={() => handleRowClick(row.id)}
+                        className={`cursor-pointer transition-colors ${
+                          selectedMooringId === row.id ? "bg-emerald-50" : "hover:bg-slate-50"
+                        }`}
+                      >
+                        <td className="font-mono text-xs">{row.code}</td>
+                        <td className="font-semibold text-slate-700">
+                          {isEditing ? (
+                            <input
+                              value={editingDraft?.name || ""}
+                              onChange={(event) => updateDraft("name", event.target.value)}
+                              className="w-full rounded border border-slate-300 px-1.5 py-1 text-xs"
+                            />
+                          ) : (
+                            row.name
+                          )}
+                        </td>
+                        <td className="font-mono text-xs text-slate-600">
+                          {isEditing ? (
+                            <div className="flex gap-1">
+                              <input
+                                value={editingDraft?.latitude || ""}
+                                onChange={(event) => updateDraft("latitude", event.target.value)}
+                                className="w-20 rounded border border-slate-300 px-1.5 py-1 text-xs"
+                              />
+                              <input
+                                value={editingDraft?.longitude || ""}
+                                onChange={(event) => updateDraft("longitude", event.target.value)}
+                                className="w-20 rounded border border-slate-300 px-1.5 py-1 text-xs"
+                              />
+                            </div>
+                          ) : (
+                            `${row.latitude.toFixed(4)}, ${row.longitude.toFixed(4)}`
+                          )}
+                        </td>
+                        <td>
+                          {isEditing ? (
+                            <input
+                              value={editingDraft?.status || ""}
+                              onChange={(event) => updateDraft("status", event.target.value)}
+                              className="w-24 rounded border border-slate-300 px-1.5 py-1 text-xs"
+                            />
+                          ) : (
+                            <span className="rounded-full border border-emerald-200 bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700">
+                              {row.status}
+                            </span>
+                          )}
+                        </td>
+                        <td className="text-xs text-slate-600">
+                          {isEditing ? (
+                            <input
+                              value={editingDraft?.koordX || ""}
+                              onChange={(event) => updateDraft("koordX", event.target.value)}
+                              className="w-32 rounded border border-slate-300 px-1.5 py-1 text-xs"
+                            />
+                          ) : (
+                            row.koordX
+                          )}
+                        </td>
+                        <td className="text-xs text-slate-600">
+                          {isEditing ? (
+                            <input
+                              value={editingDraft?.koordY || ""}
+                              onChange={(event) => updateDraft("koordY", event.target.value)}
+                              className="w-32 rounded border border-slate-300 px-1.5 py-1 text-xs"
+                            />
+                          ) : (
+                            row.koordY
+                          )}
+                        </td>
+                        <td className="text-xs text-slate-600">
+                          {isEditing ? (
+                            <input
+                              value={editingDraft?.keterangan || ""}
+                              onChange={(event) => updateDraft("keterangan", event.target.value)}
+                              className="w-40 rounded border border-slate-300 px-1.5 py-1 text-xs"
+                            />
+                          ) : (
+                            row.keterangan
+                          )}
+                        </td>
+                        <td>
+                          <div className="flex gap-1" onClick={(event) => event.stopPropagation()}>
+                            {isEditing ? (
+                              <>
+                                <Button className="h-7 px-2 text-xs btn-ocean" onClick={(event) => saveRowEdit(row.id, event)}>
+                                  Simpan
+                                </Button>
+                                <Button className="h-7 px-2 text-xs" variant="outline" onClick={cancelRowEdit}>
+                                  Batal
+                                </Button>
+                              </>
+                            ) : (
+                              <Button className="h-7 px-2 text-xs btn-yellow" onClick={(event) => startRowEdit(row, event)}>
+                                Edit
+                              </Button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
-                </table>
-                </div>
-                </CardContent>
-                </Card>
+              </table>
+            </div>
 
-      <br />
-
-     
-      
-    </div>
+            <div className="mt-4 flex items-center justify-between text-xs text-slate-600">
+              <span>
+                Menampilkan {(currentPage - 1) * PAGE_SIZE + 1} - {Math.min(currentPage * PAGE_SIZE, mooringRows.length)} dari {mooringRows.length}
+              </span>
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2"
+                  disabled={currentPage <= 1}
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                >
+                  Prev
+                </Button>
+                <span>Halaman {currentPage} / {totalPages}</span>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-7 px-2"
+                  disabled={currentPage >= totalPages}
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </AdminLayout>
   );
