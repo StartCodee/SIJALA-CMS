@@ -9,7 +9,6 @@ import PublikasiPage from "./pages/Publikasi";
 import KalenderKegiatanPage from "./pages/KalenderKegiatan";
 import NotFound from "./pages/NotFound";
 import RamsPage from "./pages/Rams";
-import IsafePage from "./pages/IsafePage"; 
 import JuaraKamiPage from "./pages/JuaraKami"; 
 import EvikaPage from "./pages/EvikaPage"; 
 import SispandalwasOverview from "./pages/sispandalwas/SispandalwasOverview";
@@ -21,7 +20,7 @@ import SispandalwasEmbedView from "./pages/sispandalwas/SispandalwasEmbedView";
 import { LanguageProvider } from "./i18n/LanguageContext";
 import { LanguageRuntimeTranslator } from "./i18n/LanguageRuntimeTranslator";
 import 'leaflet/dist/leaflet.css';
-import SispandalwasPage from "./pages/IsafePage";
+import SispandalwasPage from "./pages/SispandalwasPage";
 
 const queryClient = new QueryClient();
 

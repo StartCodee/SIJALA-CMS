@@ -29,7 +29,7 @@ import { useLanguage } from '@/i18n/LanguageContext';
 const topNavItems = [
   { to: '/', icon: LayoutDashboard, label: 'Ringkasan' },
   { to: '/rams', icon: LocateFixed, label: 'RAMS' },
-  { to: '/sispandalwas', icon: Radio, label: 'SISPANDALWAS' },
+  // { to: '/sispandalwas', icon: Radio, label: 'SISPANDALWAS' },
 ];
 
 const bottomNavItems = [

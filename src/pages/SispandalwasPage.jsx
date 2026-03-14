@@ -1,4 +1,5 @@
-﻿import { useCallback, useEffect, useMemo, useState } from "react";
+﻿import React from "react";
+import {Callback, useEffect, useMemo, useState, useCallback } from "react";
 import { MapContainer, TileLayer, GeoJSON, Marker, Popup } from "react-leaflet";
 import L from "leaflet";
 import { Layers, Loader2, Wifi, WifiOff, Wrench, Radio, Clock, RefreshCw, AlertTriangle, MapPin, X } from "lucide-react";
@@ -222,7 +223,7 @@ function LayersPanel({
 // ─── Main Component ───────────────────────────────────────────────────────────
 
 export default function SispandalwasPage() {
-  const [boats, setBoats] = React.useState(INITIAL_BOATS);
+  // const [boats, setBoats] = React.useState(INITIAL_BOATS);
   const [zoneGeoJson, setZoneGeoJson] = useState(null);
   const [clusterGeoJson, setClusterGeoJson] = useState(null);
   const [diverGeoJson, setDiverGeoJson] = useState(null);
