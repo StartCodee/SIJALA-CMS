@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { AdminLayout } from "@/components/AdminLayout";
 import { AdminHeader } from "@/components/AdminHeader";
 import { Editor } from "@tinymce/tinymce-react";
+import axios from "axios";
 
 import { Search, Plus, Pencil, X,Upload,ChevronDown,LinkIcon,Newspaper, CheckCircle2, Trash2, Image as ImageIcon, FileText, CheckCircle, Clock} from "lucide-react";
 
@@ -29,31 +30,12 @@ import {
 
 export default function BeritaPage() {
   const TINY_API_KEY = "eybf5twbyft2lx292gpajz8ru701uxg4upqd3zy9c270ng7q";
+  
+  const BASE_URL = "http://localhost:5000";
 
-  const [newsData, setNewsData] = useState([
-    {
-      id: 1,
-      title: "Penanaman Mangrove di Pesisir Sorong",
-      author: "Admin KKP",
-      category: "PROGRAM",
-      status: "PUBLISH",
-      date: "2024-05-20",
-      subjudul: "Upaya pencegahan abrasi pantai",
-      thumbnail: null,
-      content: "",
-    },
-    {
-      id: 2,
-      title: "Riset Terumbu Karang Raja Ampat",
-      author: "Rudi Hartono",
-      category: "RISET",
-      status: "DRAFT",
-      date: "2024-05-25",
-      subjudul: "Hasil observasi awal tim peneliti",
-      thumbnail: null,
-      content: "",
-    },
-  ]);
+  const API_URL = BASE_URL + "/api/berita";
+
+  const [newsData, setNewsData] = useState([]);
 
   const [categories, setCategories] = useState([
     "UMUM",
@@ -81,7 +63,11 @@ export default function BeritaPage() {
     thumbnail: null,
   });
 
+  const [loading,setLoading] = useState(false);
+
   const [activeTab, setActiveTab] = useState("semua");
+
+  const [thumbnailFile, setThumbnailFile] = useState(null);
 
   const filteredData = useMemo(() => {
     return newsData.filter((item) =>
@@ -93,6 +79,21 @@ export default function BeritaPage() {
   semua: filteredData,
   publish: filteredData.filter((n) => n.status === "PUBLISH"),
   draft: filteredData.filter((n) => n.status === "DRAFT"),
+};
+
+useEffect(() => {
+  fetchNews();
+}, []);
+
+const fetchNews = async () => {
+  try {
+    setLoading(true);
+    const res = await axios.get(API_URL);
+    setNewsData(res.data);
+    setLoading(false);
+  } catch (err) {
+    console.error(err);
+  }
 };
 
   const stats = useMemo(
@@ -123,28 +124,61 @@ export default function BeritaPage() {
     setIsModalOpen(true);
   };
 
-  const handleSave = (e) => {
-    e.preventDefault();
+  const handleSave = async (e) => {
+  e.preventDefault();
+
+  const formData = new FormData();
+
+  Object.keys(currentNews).forEach((key) => {
+    formData.append(key, currentNews[key]);
+  });
+
+  if (thumbnailFile) {
+    formData.append("thumbnail", thumbnailFile);
+  }
+
+  try {
 
     if (isEditing) {
-      setNewsData((prev) =>
-        prev.map((item) =>
-          item.id === currentNews.id ? currentNews : item
-        )
+
+      await axios.patch(
+        `${API_URL}/${currentNews.id}`,
+        formData
       );
+
     } else {
-      setNewsData((prev) => [
-        { ...currentNews, id: Date.now() },
-        ...prev,
-      ]);
+
+      await axios.post(
+        API_URL,
+        formData
+      );
+
     }
 
+    fetchNews();
     setIsModalOpen(false);
-  };
 
-  const handleDelete = (id) => {
-    setNewsData((prev) => prev.filter((n) => n.id !== id));
-  };
+  } catch (err) {
+    console.error(err);
+  }
+
+};
+
+  const handleDelete = async (id) => {
+
+  if (!confirm("Hapus berita ini?")) return;
+
+  try {
+
+    await axios.delete(`${API_URL}/${id}`);
+
+    fetchNews();
+
+  } catch (err) {
+    console.error(err);
+  }
+
+};
 
   const renderTable = (data) => (
   <Card className="card-ocean overflow-hidden">
@@ -167,7 +201,7 @@ export default function BeritaPage() {
                 <div className="w-12 h-12 bg-muted rounded-md flex items-center justify-center">
                   {item.thumbnail ? (
                     <img
-                      src={item.thumbnail}
+                      src={`${BASE_URL}${item.thumbnail}`}
                       className="w-full h-full object-cover rounded"
                     />
                   ) : (
@@ -369,19 +403,27 @@ export default function BeritaPage() {
                   <label className="text-[10px] font-bold text-slate-500 uppercase tracking-widest ml-1">Banner Utama</label>
                   <div className="relative aspect-video h-[185px] rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 overflow-hidden group hover:border-[#234E8D] transition-all shadow-inner">
                       {currentNews.thumbnail ? (
-                        <img src={currentNews.thumbnail} className="w-full h-full object-cover" />
+                        <img src={`${BASE_URL}${currentNews.thumbnail}`} className="w-full h-full object-cover" />
                       ) : (
                         <label className="flex flex-col items-center justify-center w-full h-full cursor-pointer p-4 text-center">
                             <Upload className="w-6 h-6 text-[#234E8D] mb-2"/>
                             <span className="text-[10px] font-bold text-slate-400 uppercase">Klik untuk Upload</span>
-                            <input type="file" className="hidden" accept="image/*" onChange={(e) => {
-                              const file = e.target.files[0];
-                              if (file) {
-                                  const reader = new FileReader();
-                                  reader.onloadend = () => setCurrentNews({ ...currentNews, thumbnail: reader.result });
-                                  reader.readAsDataURL(file);
-                              }
-                            }} />
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files[0];
+                                setThumbnailFile(file);
+
+                                const preview = URL.createObjectURL(file);
+
+                                setCurrentNews({
+                                  ...currentNews,
+                                  thumbnail: preview
+                                });
+                              }}
+                            />
                         </label>
                       )}
                   </div>
