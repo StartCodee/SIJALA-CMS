@@ -1,4 +1,4 @@
-$f = "d:\Hakkam\Kuliah\Projects\SIJALA-CMS\src\pages\IsafePage.jsx"
+$f = "d:\Hakkam\Kuliah\Projects\SIJALA-CMS\src\pages\SispandalwasPage.jsx"
 $lines = [System.IO.File]::ReadAllLines($f, [System.Text.Encoding]::UTF8)
 $out = [System.Collections.Generic.List[string]]::new()
 

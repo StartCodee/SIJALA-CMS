@@ -29,6 +29,7 @@ import { useLanguage } from '@/i18n/LanguageContext';
 const topNavItems = [
   { to: '/', icon: LayoutDashboard, label: 'Ringkasan' },
   { to: '/rams', icon: LocateFixed, label: 'RAMS' },
+  // { to: '/sispandalwas', icon: Radio, label: 'SISPANDALWAS' },
 ];
 
 const bottomNavItems = [
@@ -40,12 +41,12 @@ const bottomNavItems = [
 ];
 
 const sispandalwasItems = [
-  { to: '/i-safe/overview', icon: LayoutDashboard, label: 'Overview' },
-  { to: '/i-safe', icon: Map, label: 'Peta SISPANDALWAS', end: true },
-  { to: '/i-safe/tracker', icon: Cpu, label: 'Manajemen Tracker' },
-  { to: '/i-safe/playback', icon: History, label: 'Playback Riwayat' },
-  { to: '/i-safe/embed', icon: Code2, label: 'Embed Code' },
-  { to: '/i-safe/settings', icon: Settings2, label: 'Settings' },
+  { to: '/sispandalwas/overview', icon: LayoutDashboard, label: 'Overview' },
+  { to: '/sispandalwas', icon: Map, label: 'Peta SISPANDALWAS', end: true },
+  { to: '/sispandalwas/tracker', icon: Cpu, label: 'Manajemen Tracker' },
+  { to: '/sispandalwas/playback', icon: History, label: 'Playback Riwayat' },
+  { to: '/sispandalwas/embed', icon: Code2, label: 'Embed Code' },
+  { to: '/sispandalwas/settings', icon: Settings2, label: 'Settings' },
 ];
 
 export function AdminSidebar({ className, mobileOpen = false, onMobileClose }) {

@@ -1,5 +1,5 @@
 const fs = require('fs');
-const f = 'd:\\Hakkam\\Kuliah\\Projects\\SIJALA-CMS\\src\\pages\\IsafePage.jsx';
+const f = 'd:\\Hakkam\\Kuliah\\Projects\\SIJALA-CMS\\src\\pages\\SispandalwasPage.jsx';
 const lines = fs.readFileSync(f, 'utf8').split('\n');
 const out = [];
 

@@ -9,7 +9,6 @@ import PublikasiPage from "./pages/Publikasi";
 import KalenderKegiatanPage from "./pages/KalenderKegiatan";
 import NotFound from "./pages/NotFound";
 import RamsPage from "./pages/Rams";
-import IsafePage from "./pages/IsafePage"; 
 import JuaraKamiPage from "./pages/JuaraKami"; 
 import EvikaPage from "./pages/EvikaPage"; 
 import SispandalwasOverview from "./pages/sispandalwas/SispandalwasOverview";
@@ -21,6 +20,7 @@ import SispandalwasEmbedView from "./pages/sispandalwas/SispandalwasEmbedView";
 import { LanguageProvider } from "./i18n/LanguageContext";
 import { LanguageRuntimeTranslator } from "./i18n/LanguageRuntimeTranslator";
 import 'leaflet/dist/leaflet.css';
+import SispandalwasPage from "./pages/SispandalwasPage";
 
 const queryClient = new QueryClient();
 
@@ -39,12 +39,12 @@ const App = () => (
             <Route path="/KalenderKegiatan" element={<KalenderKegiatanPage />} />
             <Route path="/rams" element={<RamsPage />} />
             {/* SISPANDALWAS sub-routes */}
-            <Route path="/i-safe" element={<IsafePage />} />
-            <Route path="/i-safe/overview" element={<SispandalwasOverview />} />
-            <Route path="/i-safe/tracker" element={<ManajemenTracker />} />
-            <Route path="/i-safe/playback" element={<PlaybackRiwayat />} />
-            <Route path="/i-safe/embed" element={<EmbedCode />} />
-            <Route path="/i-safe/settings" element={<SispandalwasSettings />} />
+            <Route path="/sispandalwas" element={<SispandalwasPage />} />
+            <Route path="/sispandalwas/overview" element={<SispandalwasOverview />} />
+            <Route path="/sispandalwas/tracker" element={<ManajemenTracker />} />
+            <Route path="/sispandalwas/playback" element={<PlaybackRiwayat />} />
+            <Route path="/sispandalwas/embed" element={<EmbedCode />} />
+            <Route path="/sispandalwas/settings" element={<SispandalwasSettings />} />
             <Route path="/embed" element={<SispandalwasEmbedView />} />
             <Route path="/juara-kami" element={<JuaraKamiPage />} />
             <Route path="/evika" element={<EvikaPage />} />
