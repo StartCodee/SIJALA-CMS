@@ -6,12 +6,18 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import OverviewPage from "./pages/OverviewPage";
 import BeritaPage from "./pages/Berita"; 
 import PublikasiPage from "./pages/Publikasi";
-import KalenderKegiatanPage from "./pages/KalenderKegiatan"; // 1. Pastikan import ini ada
+import KalenderKegiatanPage from "./pages/KalenderKegiatan";
 import NotFound from "./pages/NotFound";
 import RamsPage from "./pages/Rams";
 import IsafePage from "./pages/IsafePage"; 
 import JuaraKamiPage from "./pages/JuaraKami"; 
 import EvikaPage from "./pages/EvikaPage"; 
+import SispandalwasOverview from "./pages/sispandalwas/SispandalwasOverview";
+import ManajemenTracker from "./pages/sispandalwas/ManajemenTracker";
+import PlaybackRiwayat from "./pages/sispandalwas/PlaybackRiwayat";
+import EmbedCode from "./pages/sispandalwas/EmbedCode";
+import SispandalwasSettings from "./pages/sispandalwas/SispandalwasSettings";
+import SispandalwasEmbedView from "./pages/sispandalwas/SispandalwasEmbedView";
 import { LanguageProvider } from "./i18n/LanguageContext";
 import { LanguageRuntimeTranslator } from "./i18n/LanguageRuntimeTranslator";
 import 'leaflet/dist/leaflet.css';
@@ -28,15 +34,20 @@ const App = () => (
           <LanguageRuntimeTranslator />
           <Routes>
             <Route path="/" element={<OverviewPage />} />
-            {/* 2. Pastikan huruf besar/kecil SAMA dengan di Sidebar */}
             <Route path="/Berita" element={<BeritaPage />} />
             <Route path="/Publikasi" element={<PublikasiPage />} />
             <Route path="/KalenderKegiatan" element={<KalenderKegiatanPage />} />
             <Route path="/rams" element={<RamsPage />} />
+            {/* SISPANDALWAS sub-routes */}
             <Route path="/i-safe" element={<IsafePage />} />
+            <Route path="/i-safe/overview" element={<SispandalwasOverview />} />
+            <Route path="/i-safe/tracker" element={<ManajemenTracker />} />
+            <Route path="/i-safe/playback" element={<PlaybackRiwayat />} />
+            <Route path="/i-safe/embed" element={<EmbedCode />} />
+            <Route path="/i-safe/settings" element={<SispandalwasSettings />} />
+            <Route path="/embed" element={<SispandalwasEmbedView />} />
             <Route path="/juara-kami" element={<JuaraKamiPage />} />
             <Route path="/evika" element={<EvikaPage />} />
-            {/* Route Catch-all (Wildcard) harus di paling bawah */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

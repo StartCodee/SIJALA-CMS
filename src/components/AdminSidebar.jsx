@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   LogOut,
   X,
   Newspaper, 
@@ -14,29 +15,53 @@ import {
   Trophy,
   Radio,
   LocateFixed,
-  BookOpenText
+  BookOpenText,
+  Map,
+  Cpu,
+  History,
+  Code2,
+  Settings2,
 } from 'lucide-react';
 import logoRajaAmpat from '@/assets/image/KKP-RajaAmpat.png';
 import motifSidebar from '@/assets/motif-sidebar.svg';
 import { useLanguage } from '@/i18n/LanguageContext';
 
-const mainNavItems = [
+const topNavItems = [
   { to: '/', icon: LayoutDashboard, label: 'Ringkasan' },
   { to: '/rams', icon: LocateFixed, label: 'RAMS' },
-  { to: '/i-safe', icon: Radio, label: 'SISPANDALWAS' },
+];
+
+const bottomNavItems = [
   { to: '/juara-kami', icon: Trophy, label: 'Juara Kami' },
   { to: '/evika', icon: BookOpenText, label: 'EVIKA' },
   { to: '/Berita', icon: Newspaper, label: 'Berita' },
   { to: '/Publikasi', icon: BookOpen, label: 'Publikasi' }, 
-  { to: '/KalenderKegiatan', icon: CalendarDays, label: 'Kalender Kegiatan' } 
+  { to: '/KalenderKegiatan', icon: CalendarDays, label: 'Kalender Kegiatan' },
+];
+
+const sispandalwasItems = [
+  { to: '/i-safe/overview', icon: LayoutDashboard, label: 'Overview' },
+  { to: '/i-safe', icon: Map, label: 'Peta SISPANDALWAS', end: true },
+  { to: '/i-safe/tracker', icon: Cpu, label: 'Manajemen Tracker' },
+  { to: '/i-safe/playback', icon: History, label: 'Playback Riwayat' },
+  { to: '/i-safe/embed', icon: Code2, label: 'Embed Code' },
+  { to: '/i-safe/settings', icon: Settings2, label: 'Settings' },
 ];
 
 export function AdminSidebar({ className, mobileOpen = false, onMobileClose }) {
   const [collapsed, setCollapsed] = useState(false);
+  const [sispandalwasOpen, setSispandalwasOpen] = useState(false);
   const { language, setLanguage } = useLanguage();
   const location = useLocation();
   const previousPath = useRef(location.pathname);
   const isCollapsed = collapsed && !mobileOpen;
+
+  const isSispandalwasActive = location.pathname.startsWith('/i-safe');
+
+  // Auto-open when on a sispandalwas route
+  useEffect(() => {
+    if (isSispandalwasActive) setSispandalwasOpen(true);
+  }, [isSispandalwasActive]);
 
   useEffect(() => {
     if (previousPath.current !== location.pathname) {
@@ -125,7 +150,88 @@ export function AdminSidebar({ className, mobileOpen = false, onMobileClose }) {
                 Menu Utama
               </p>
             )}
-            {mainNavItems.map((item) => (
+            {topNavItems.map((item) => (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={item.to === '/'}
+                className={({ isActive }) => cn(
+                  'nav-item mx-2 flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/70 transition-all hover:bg-sidebar-accent hover:text-sidebar-foreground',
+                  isActive && 'bg-sidebar-accent text-white font-medium shadow-sm active',
+                  isCollapsed && 'justify-center px-2 mx-2'
+                )}
+                title={isCollapsed ? item.label : undefined}
+                onClick={handleMobileClose}
+              >
+                <item.icon className={cn("w-5 h-5 flex-shrink-0", isCollapsed ? "" : "min-w-[20px]")} />
+                {!isCollapsed && <span className="truncate">{item.label}</span>}
+              </NavLink>
+            ))}
+
+            {/* SISPANDALWAS accordion */}
+            <div>
+              <button
+                type="button"
+                onClick={() => { if (!isCollapsed) setSispandalwasOpen((p) => !p); }}
+                className={cn(
+                  'nav-item mx-2 w-[calc(100%-16px)] flex items-center gap-3 px-3 py-2.5 rounded-lg text-sidebar-foreground/70 transition-all hover:bg-sidebar-accent hover:text-sidebar-foreground',
+                  isSispandalwasActive && 'bg-sidebar-accent text-white font-medium shadow-sm active',
+                  isCollapsed && 'justify-center px-2'
+                )}
+                title={isCollapsed ? 'SISPANDALWAS' : undefined}
+              >
+                <Radio className={cn("w-5 h-5 flex-shrink-0", isCollapsed ? "" : "min-w-[20px]")} />
+                {!isCollapsed && (
+                  <>
+                    <span className="truncate flex-1 text-left">SISPANDALWAS</span>
+                    <ChevronDown className={cn('w-4 h-4 transition-transform flex-shrink-0', sispandalwasOpen && 'rotate-180')} />
+                  </>
+                )}
+              </button>
+
+              {!isCollapsed && sispandalwasOpen && (
+                <div className="mt-0.5 ml-4 border-l border-sidebar-border/40 pl-2 space-y-0.5">
+                  {sispandalwasItems.map((item) => (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      end={item.end}
+                      className={({ isActive }) => cn(
+                        'flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-sidebar-foreground/60 transition-all hover:bg-sidebar-accent hover:text-sidebar-foreground',
+                        isActive && 'bg-sidebar-accent/70 text-white font-medium'
+                      )}
+                      onClick={handleMobileClose}
+                    >
+                      <item.icon className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate">{item.label}</span>
+                    </NavLink>
+                  ))}
+                </div>
+              )}
+
+              {/* Collapsed: show subitems as icons only */}
+              {isCollapsed && (
+                <div className="mt-0.5 space-y-0.5">
+                  {sispandalwasItems.map((item) => (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      end={item.end}
+                      className={({ isActive }) => cn(
+                        'mx-2 flex items-center justify-center px-2 py-2 rounded-lg text-sidebar-foreground/60 transition-all hover:bg-sidebar-accent hover:text-sidebar-foreground',
+                        isActive && 'bg-sidebar-accent/70 text-white font-medium'
+                      )}
+                      title={item.label}
+                      onClick={handleMobileClose}
+                    >
+                      <item.icon className="w-4 h-4 flex-shrink-0" />
+                    </NavLink>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {bottomNavItems.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}

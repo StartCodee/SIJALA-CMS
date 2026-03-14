@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, Marker, Popup, TileLayer, GeoJSON, useMap } from "react-leaflet";
 import L from "leaflet";
-import { Layers, Loader2 } from "lucide-react";
+import { Layers, Loader2, X } from "lucide-react";
 
 import { AdminLayout } from "@/components/AdminLayout";
 import { AdminHeader } from "@/components/AdminHeader";
@@ -25,9 +25,9 @@ const ZONE_ORDER = ["Inti", "Pemanfaatan Terbatas", "Lainnya"];
 
 const mooringIcon = L.divIcon({
   className: "",
-  html: '<div style="width:16px;height:16px;border-radius:999px;background:#0f766e;border:2px solid #ecfeff;box-shadow:0 2px 10px rgba(15,118,110,.45)"></div>',
-  iconSize: [16, 16],
-  iconAnchor: [8, 8],
+  html: '<div style="width:22px;height:22px;border-radius:999px;background:#0f766e;border:2px solid #ecfeff;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 10px rgba(15,118,110,.45)"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#ecfeff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="5" r="2"></circle><line x1="12" y1="7" x2="12" y2="16"></line><path d="M5 12a7 7 0 0 0 14 0"></path><path d="M8 19l4-3 4 3"></path></svg></div>',
+  iconSize: [22, 22],
+  iconAnchor: [11, 11],
 });
 
 function formatLuas(luas) {
@@ -76,15 +76,25 @@ function MapReadyBridge({ onReady }) {
   return null;
 }
 
-function LayersPanel({ layerVisibility, setLayerVisibility, zoneVisibility, setZoneVisibility }) {
+function LayersPanel({ layerVisibility, setLayerVisibility, zoneVisibility, setZoneVisibility, onClose }) {
   return (
     <div
       className="absolute left-4 bottom-16 z-[1000] w-64 rounded-xl border border-slate-200 bg-white shadow-xl"
       onMouseDown={(event) => event.stopPropagation()}
       onClick={(event) => event.stopPropagation()}
     >
-      <div className="flex items-center gap-2 rounded-t-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white">
-        <Layers className="h-3.5 w-3.5" /> Legend & Layers
+      <div className="flex items-center justify-between rounded-t-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white">
+        <div className="flex items-center gap-2">
+          <Layers className="h-3.5 w-3.5" /> Legend & Layers
+        </div>
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-md p-1 text-white/80 hover:bg-white/10 hover:text-white"
+          aria-label="Close legend panel"
+        >
+          <X className="h-3.5 w-3.5" />
+        </button>
       </div>
 
       <div className="space-y-3 px-3 py-3 text-xs">
@@ -155,7 +165,7 @@ export default function RamsPage() {
   const [mooringRows, setMooringRows] = useState([]);
 
   const [loading, setLoading] = useState(true);
-  const [layersOpen, setLayersOpen] = useState(true);
+  const [layersOpen, setLayersOpen] = useState(false);
   const [layerVisibility, setLayerVisibility] = useState({
     zones: true,
     moorings: true,
@@ -424,6 +434,7 @@ export default function RamsPage() {
                   setLayerVisibility={setLayerVisibility}
                   zoneVisibility={zoneVisibility}
                   setZoneVisibility={setZoneVisibility}
+                  onClose={() => setLayersOpen(false)}
                 />
               )}
             </div>
